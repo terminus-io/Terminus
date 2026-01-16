@@ -1,9 +1,8 @@
 
 # 🏛️ Terminus
 
-<p align="center">
-  <img src="https://via.placeholder.com/150?text=Terminus" alt="Terminus Logo" width="120">
-</p>
+<img width="2816" height="1536" alt="Gemini_Generated_Image_3r4t1l3r4t1l3r4t" src="https://github.com/user-attachments/assets/83c7772a-bac4-46eb-8ced-bd39d6d26901" />
+
 
 <p align="center">
   <b>The Boundary God for Kubernetes Ephemeral Storage.</b>
