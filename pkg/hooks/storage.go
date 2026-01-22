@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	DiskAnnotation      = "disk.terminus.io/size"
+	DiskAnnotation      = "storage.terminus.io/size"
 	ContainerdBasePath  = "/run/containerd/io.containerd.runtime.v2.task/k8s.io/"
 	ContainerdRootPath  = "/var/lib/containerd"
 	SystemMountInfoFile = "/proc/1/mountinfo"
@@ -117,14 +117,14 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 
 func (h *StorageHook) Stop(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
-	klog.V(2).Info("Deleting quota to container %s (ID: %s) at %s", container.Name, container.Id, rootfsPath)
+	klog.V(2).Infof("Deleting quota to container %s (ID: %s) at %s", container.Name, container.Id, rootfsPath)
 	snapshotID, foundPath, err := getOverlayPath(rootfsPath)
 	if err != nil {
-		klog.Warning("found Project ID for %s, failed", foundPath)
+		klog.Warningf("found Project ID for %s, failed", foundPath)
 		return err
 	}
 	if err := h.qm.RemoveQuota("/", uint32(snapshotID)); err != nil {
-		klog.Warning("remove Project ID quota for %s, failed", foundPath)
+		klog.Warningf("remove Project ID quota for %s, failed", foundPath)
 		return err
 	}
 
