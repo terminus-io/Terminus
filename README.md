@@ -49,7 +49,7 @@ graph TD
     
     subgraph Control Plane
         API -->|Watch| Scheduler[Kube-Scheduler]
-        Scheduler -- Filter/Score --> Plugin[<b>Terminus-Gatekeeper</b>]
+        Scheduler -- Filter/Score --> Plugin[<b>Terminus-Scheduler</b>]
     end
 
     subgraph Worker Node
@@ -60,8 +60,7 @@ graph TD
         
         Kernel -.-> Pod[Container Rootfs]
         
-        Agent[<b>Terminus-Sentinel</b>] -- Watch Usage --> Kernel
-        Agent -- Evict Pod --> API
+        Agent[<b>Terminus-Exporter</b>] -- Watch Usage --> Kernel
     end
     
     classDef component fill:#f9f,stroke:#333,stroke-width:2px;
@@ -102,9 +101,6 @@ Edit your `/etc/containerd/config.toml` to enable the NRI plugin:
 ### 3. Manual Installation
 
 ```bash
-# Apply CRDs (if any)
-kubectl apply -f deploy/crds/
-
 # Install the Node Agent (Enforcer & Sentinel)
 kubectl apply -f deploy/manifests/agent-daemonset.yaml
 
@@ -117,7 +113,7 @@ kubectl apply -f deploy/manifests/scheduler-deployment.yaml
 
 ### 1. Enforcing Limits via Annotation
 
-Simply add the `storage.terminus.io/rootfs-limit` annotation to your Pod. Terminus will automatically inject the Project Quota limit.
+Simply add the `storage.terminus.io/size` annotation to your Pod. Terminus will automatically inject the Project Quota limit.
 
 ```yaml
 apiVersion: v1
@@ -126,7 +122,7 @@ metadata:
   name: my-app
   annotations:
     # Limit the Rootfs (Overlayfs) to 10Gi (Hard Limit)
-    storage.terminus.io/rootfs-limit: "10Gi"
+    storage.terminus.io/size: "10Gi"
 spec:
   containers:
   - name: nginx
@@ -136,7 +132,7 @@ spec:
 
 ### 2. Configuring Scheduling Policy
 
-You can configure the `Terminus-Gatekeeper` via ConfigMap to set the over-provisioning strategy.
+You can configure the `Terminus-Scheduler` via ConfigMap to set the over-provisioning strategy.
 
 ```yaml
 apiVersion: v1
@@ -158,8 +154,7 @@ data:
 
 * [ ] **v0.1 (MVP)**: NRI plugin implementation for XFS Project Quota.
 * [ ] **v0.2**: Prometheus Exporter & Grafana Dashboard integration.
-* [ ] **v0.3**: Scheduler Plugin with "Real Usage" awareness.
-* [ ] **v1.0**: Full "Eviction Controller" and production readiness.
+* [ ] **v1.0**: Scheduler Plugin with "Real Usage" awareness.
 
 ## 🤝 Contributing
 
