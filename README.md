@@ -152,9 +152,9 @@ data:
 
 ## 🗺️ Roadmap
 
-* [ ] **v0.1 (MVP)**: NRI plugin implementation for XFS Project Quota.
-* [ ] **v0.2**: Prometheus Exporter & Grafana Dashboard integration.
-* [ ] **v1.0**: Scheduler Plugin with "Real Usage" awareness.
+* [x] **v0.1 (MVP)**: NRI plugin implementation for XFS Project Quota.
+* [x] **v0.2**: Prometheus Exporter & Grafana Dashboard integration.
+* [x] **v1.0**: Scheduler Plugin with "Real Usage" awareness.
 
 ## 🤝 Contributing
 
