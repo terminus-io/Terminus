@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: terminus-enforcer
+  namespace: terminus
+  labels:
+    app: terminus-enforcer
+spec:
+  selector:
+    matchLabels:
+      app: terminus-enforcer
+  template:
+    metadata:
+      labels:
+        app: terminus-enforcer
+    spec:
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      serviceAccount: terminus-admin
+      serviceAccountName: terminus-admin
+      priorityClassName: system-node-critical
+      containers:
+      - name: terminus-enforcer
+        image: ghcr.m.daocloud.io/terminus/enforcer:latest
+        imagePullPolicy: IfNotPresent
+        terminationMessagePath: /tmp/termination-log
+        terminationMessagePolicy: File
+        securityContext:
+          privileged: true
+        command:
+        - /usr/bin/terminus-enforcer
+        args:
+          - "-v=4"
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: host-root
+          mountPath: /dev
+        - name: containerd-root
+          mountPath: /var/lib/containerd
+        - mountPath: /var/run/nri/nri.sock
+          name: socket
+          readOnly: true
+      volumes:
+      - name: containerd-root
+        hostPath:
+          path: /var/lib/containerd
+          type: Directory
+      - hostPath:
+          path: /var/run/nri/nri.sock
+          type: Socket
+        name: socket
+      - name: host-root
+        hostPath:
+          path: /dev
+          type: Directory

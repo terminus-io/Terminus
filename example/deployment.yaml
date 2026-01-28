@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terminus-deploy-not-red
+  labels:
+    app: terminus-test
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: terminus-test
+  template:
+    metadata:
+      labels:
+        app: terminus-test
+      annotations:
+        storage.terminus.io/size: "10Gi"
+    spec:
+      schedulerName: terminus-scheduler
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m

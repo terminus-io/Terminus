@@ -14,11 +14,9 @@ func (e *Enforcer) CreateContainer(ctx context.Context, pod *api.PodSandbox, con
 	for _, hook := range e.Hooks {
 		if err := hook.Process(ctx, pod, container); err != nil {
 			klog.ErrorS(err, "Hook failed", "hook", hook.Name())
-			// 根据需求，可以返回 err 阻断容器创建
 			return nil, nil, err
 		}
 	}
-	// -----------------------
 
 	return nil, nil, nil
 }

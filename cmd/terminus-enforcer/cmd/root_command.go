@@ -4,26 +4,36 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/Frank-svg-dev/Terminus/pkg/exporter"
+	ext4_exporter "github.com/Frank-svg-dev/Terminus/pkg/exporter/ext4"
 	"github.com/Frank-svg-dev/Terminus/pkg/hooks"
 	"github.com/Frank-svg-dev/Terminus/pkg/k8s"
 	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
 	"github.com/Frank-svg-dev/Terminus/pkg/nri"
+	"github.com/Frank-svg-dev/Terminus/pkg/quota"
+	"github.com/Frank-svg-dev/Terminus/pkg/quota/ext4"
 	"github.com/Frank-svg-dev/Terminus/pkg/quota/xfs"
 	"github.com/Frank-svg-dev/Terminus/pkg/reporter"
+	"github.com/Frank-svg-dev/Terminus/pkg/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/klog/v2"
 )
 
 const (
-	socketPath = "/var/run/nri/nri.sock"
-	pluginName = "Terminus-Enforcer"
-	pluginIdx  = "06"
+	socketPath       = "/var/run/nri/nri.sock"
+	pluginName       = "Terminus-Enforcer"
+	pluginIdx        = "06"
+	EXT4_SUPER_MAGIC = 0xEF53
+	XFS_SUPER_MAGIC  = 0x58465342
+	containerdPath   = "/var/lib/containerd"
 )
 
 // rootCmd 定义根命令
@@ -31,22 +41,23 @@ var rootCmd = &cobra.Command{
 	Use:   "terminus-enforcer",
 	Short: "Terminus NRI Plugin",
 	Long:  `Terminus Enforcer listens to NRI events and applies Project Quota limits.`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// 确保 klog 能够解析 flags
-		flag.Parse()
-	},
-	// 真正的执行入口
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		// 1. 基础资源初始化 (线性执行)
+		if os.Getenv("NODE_NAME") == "" {
+			return errors.New("NODE_NAME var is empty, please export NODE_NAME before")
+		}
+
 		kClient, err := k8s.GenrateK8sClient()
 		if err != nil {
 			return err
 		}
 
-		// 2. 组件初始化
 		store := metadata.NewAsyncStore(1000)
-		qm := xfs.NewXFSCLI()
+		qm, collector, err := genrateQuotaManager(containerdPath, store)
+		if err != nil {
+			return err
+		}
+
 		storageHook := hooks.NewStorageHook(qm, store)
 
 		enforcer, err := nri.NewEnforcer(
@@ -67,32 +78,27 @@ var rootCmd = &cobra.Command{
 
 		g, ctx := errgroup.WithContext(ctx)
 
-		// A. 启动 Metadata Store
 		g.Go(func() error {
 			klog.Info("Starting Metadata Store...")
-			store.Run(ctx) // 假设 store.Run 是阻塞的，或者你需要简单封装一下
+			store.Run(ctx)
 			return nil
 		})
 
-		// B. 启动 Reporter
 		g.Go(func() error {
 			klog.Info("Starting Reporter...")
-			rpt.Run(ctx) // 假设 reporter.Run 会监听 ctx.Done() 并退出
+			rpt.Run(ctx)
 			return nil
 		})
 
 		g.Go(func() error {
-			return exporter.StartMetricsServer(ctx, store, ":9201")
+			return exporter.StartMetricsServer(ctx, collector, store, ":9201")
 		})
 
-		// D. 启动 Enforcer (核心进程)
 		g.Go(func() error {
 			klog.Info("Starting NRI Enforcer...")
 			return enforcer.Run(ctx)
 		})
 
-		// 4. 等待所有组件退出
-		// 只要上述任意一个 g.Go 返回 error，或者收到 SIGTERM，Wait 就会返回
 		if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 			klog.ErrorS(err, "Terminus Enforcer exited with error")
 			return err
@@ -104,14 +110,33 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Execute 是 main.go 调用的函数
 func Execute() error {
 	return rootCmd.Execute()
 }
 
-// init 初始化 Flags
 func init() {
 	klog.InitFlags(nil)
 	rootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	_ = flag.Set("logtostderr", "true")
+}
+
+func genrateQuotaManager(path string, store *metadata.AsyncStore) (quota.QuotaManager, prometheus.Collector, error) {
+	var stat syscall.Statfs_t
+	err := syscall.Statfs(path, &stat)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return nil, nil, err
+	}
+	fsType := int64(stat.Type)
+	switch fsType {
+	case EXT4_SUPER_MAGIC:
+		klog.Info("this node filesystem is ext4")
+		mountPoint, _ := utils.GetMountPoint(containerdPath)
+		return ext4.NewExt4CLI(), ext4_exporter.NewExt4Collector(mountPoint, store), nil
+	case XFS_SUPER_MAGIC:
+		klog.Info("this node filesystem is xfs")
+		return xfs.NewXFSCLI(), exporter.NewXFSCollector(containerdPath, store), nil
+	default:
+		return nil, nil, fmt.Errorf("Unknown or other FS. Magic Number: %x\nSupport fileSystem: xfs / ext4", fsType)
+	}
 }

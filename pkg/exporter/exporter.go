@@ -12,8 +12,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func StartMetricsServer(ctx context.Context, store *metadata.AsyncStore, metricsAddr string) error {
-	collector := NewXFSCollector("/", store)
+func StartMetricsServer(ctx context.Context, collector prometheus.Collector, store *metadata.AsyncStore, metricsAddr string) error {
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(collector)
 

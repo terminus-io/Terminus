@@ -58,7 +58,7 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 	q, err := resource.ParseQuantity(limitStr)
 	if err != nil {
 		klog.ErrorS(err, "Failed to parse limit string", "limit", limitStr)
-		return nil // 解析失败不阻断，或者你可以选择返回 err 阻断
+		return nil
 	}
 
 	// 3. 直接获取 byte 值 (int64)
@@ -84,10 +84,6 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 	}
 
 	klog.V(2).Infof("Target XFS Quota Path: %s, Quota ProjectID: %v", rootfsPath, snapshotID)
-
-	// if err := h.qm.CleanProjectID(rootfsPath, uint32(snapshotID)); err != nil {
-	// 	klog.Errorf("Failed to apply quota: %v  1222", err)
-	// }
 
 	if err := h.qm.SetProjectID(rootfsPath, uint32(snapshotID)); err != nil {
 		klog.Errorf("Failed to apply quota: %v  11133", err)
@@ -116,6 +112,12 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 }
 
 func (h *StorageHook) Stop(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
+
+	_, ok := pod.Annotations[DiskAnnotation]
+	if !ok {
+		return nil
+	}
+
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
 	klog.V(2).Infof("Deleting quota to container %s (ID: %s) at %s", container.Name, container.Id, rootfsPath)
 	snapshotID, foundPath, err := getOverlayPath(rootfsPath)

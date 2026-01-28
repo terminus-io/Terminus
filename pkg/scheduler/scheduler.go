@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 	schdulerFramework "k8s.io/kubernetes/pkg/scheduler/framework"
 )
 
@@ -90,10 +91,9 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 	if node == nil {
 		return schdulerFramework.NewStatus(schdulerFramework.Error, "node not found")
 	}
-	// 实际项目中建议使用 resource.ParseQuantity
 	requestStr := pod.Annotations[podLimitAnnotation]
 	if requestStr == "" {
-		return nil // 不需要存储，直接放行
+		return nil
 	}
 
 	requestBytes, err := resource.ParseQuantity(requestStr)
@@ -102,7 +102,6 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 			fmt.Sprintf("Invalid Parse : %s ", requestStr))
 	}
 
-	// 2. 【极速】从缓存读取节点状态
 	val, ok := p.statsCache.Load(node.Name)
 	if !ok {
 		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable, "Node storage stats missing")
@@ -125,7 +124,7 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 
 	if (nodeExistingAllocated + requestBytes.Value()) >= overCommit {
 		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable,
-			fmt.Sprintf("Insufficient  storage: req %d, free %d", requestBytes.Value(), free))
+			fmt.Sprintf("Insufficient  storage: req %d, free %d", requestBytes.Value(), overCommit-nodeExistingAllocated))
 	}
 
 	safeLimit := int64(float64(capacity) * threshold)
@@ -136,15 +135,15 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 				requestBytes.Value(), free))
 	}
 
+	klog.V(4).Infof("%s pod schedule node %s ", pod.Name, node.Name)
 	return nil
 }
 
 // Score: 剩余空间越大的节点，分数越高 (LeastAllocated 策略)
 func (p *TerminusSchedulerPlugin) Score(ctx context.Context, state *schdulerFramework.CycleState, pod *v1.Pod, nodeName string) (int64, *schdulerFramework.Status) {
-	// nodeInfo.Node()
 	nodeInfo, err := p.handle.SnapshotSharedLister().NodeInfos().Get(nodeName)
-	if err == nil {
-		return 0, nil // 拿不到信息，给 0 分
+	if err != nil {
+		return 0, nil
 	}
 	val, ok := p.statsCache.Load(nodeInfo.Node().Name)
 	if !ok {
@@ -174,6 +173,7 @@ func (p *TerminusSchedulerPlugin) Score(ctx context.Context, state *schdulerFram
 	physicalScore := int64((float64(free) / float64(capacity)) * float64(schdulerFramework.MaxNodeScore))
 
 	score := min(logicalScore, physicalScore)
+	klog.V(4).Infof("%s pod, node %s score is : %v ", pod.Name, nodeName, score)
 
 	return score, nil
 }

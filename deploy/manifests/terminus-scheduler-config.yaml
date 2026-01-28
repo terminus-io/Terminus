@@ -1,0 +1,15 @@
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+leaderElection:
+  leaderElect: true
+  resourceName: terminus-scheduler
+profiles:
+  - schedulerName: terminus-scheduler
+    plugins:
+      filter:
+        enabled:
+          - name: terminus-scheduler
+      score:
+        enabled:
+          - name: terminus-scheduler
+            weight: 1

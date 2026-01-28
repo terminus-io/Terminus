@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terminus-scheduler
+  namespace: terminus
+  labels:
+    app: terminus-scheduler
+spec:
+  selector:
+    matchLabels:
+      app: terminus-scheduler
+  template:
+    metadata:
+      labels:
+        app: terminus-scheduler
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      serviceAccount: terminus-admin
+      serviceAccountName: terminus-admin
+      containers:
+      - name: terminus-scheduler
+        image: ghcr.m.daocloud.io/terminus/scheduler:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - /usr/bin/terminus-scheduler
+        args:
+         - -v=4
+         - --bind-address=0.0.0.0
+         - --leader-elect=false
+         - --leader-elect-resource-name=terminus-scheduler
+         - --config=/etc/terminus/terminus-scheduler-config.yaml
+        volumeMounts:
+        - mountPath: /etc/terminus/
+          name: terminus-scheduler-config
+          readOnly: true
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: terminus-scheduler-config.yaml
+            path: terminus-scheduler-config.yaml
+          name: terminus-scheduler-config
+        name: terminus-scheduler-config

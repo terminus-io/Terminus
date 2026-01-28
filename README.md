@@ -101,11 +101,17 @@ Edit your `/etc/containerd/config.toml` to enable the NRI plugin:
 ### 3. Manual Installation
 
 ```bash
-# Install the Node Agent (Enforcer & Sentinel)
-kubectl apply -f deploy/manifests/agent-daemonset.yaml
+# Install the RBAC
+kubectl apply -f deploy/manifests/rbac.yaml
+
+# Install the Scheduler Configmap
+kubectl create cm -n terminus --from-file=deploy/manifests/terminus-scheduler-config.yaml
+
+# Install the Node Agent (Enforcer & Exporter)
+kubectl apply -f deploy/manifests/terminus-enforcer.yaml
 
 # Install the Scheduler Plugin
-kubectl apply -f deploy/manifests/scheduler-deployment.yaml
+kubectl apply -f deploy/manifests/terminus-scheduler.yaml
 
 ```
 
@@ -130,7 +136,7 @@ spec:
 
 ```
 
-### 2. Configuring Scheduling Policy
+<!-- ### 2. Configuring Scheduling Policy
 
 You can configure the `Terminus-Scheduler` via ConfigMap to set the over-provisioning strategy.
 
@@ -148,7 +154,7 @@ data:
       # Allow allocating up to 200% of physical capacity (Over-commitment)
       overProvisioningRate: 2.0
 
-```
+``` -->
 
 ## 🗺️ Roadmap
 
