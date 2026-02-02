@@ -44,18 +44,13 @@ func (r *reporter) Run(ctx context.Context) {
 		}
 	}
 
-	// 1. 启动时立即执行一次 (不要傻等30秒)
 	reportFunc()
-
-	// 2. 进入死循环
 	for {
 		select {
-		// 监听 Context 取消信号 (比如主进程退出时)
 		case <-ctx.Done():
 			klog.Info("Reporter context cancelled, stopping loop.")
 			return
 
-		// 监听定时器信号
 		case <-ticker.C:
 			reportFunc()
 		}

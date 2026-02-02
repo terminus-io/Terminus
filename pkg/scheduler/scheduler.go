@@ -15,7 +15,6 @@ import (
 	frameworkruntime "k8s.io/kubernetes/pkg/scheduler/framework/runtime"
 )
 
-// 插件名称
 const (
 	SchedulerName       = "terminus-scheduler"
 	nodeAnnotationTotal = "storage.terminus.io/physical-total" // NRI 插件上报的 Key
@@ -24,7 +23,6 @@ const (
 	threshold           = 0.95
 )
 
-// TerminusPlugin 插件结构体
 type TerminusSchedulerPlugin struct {
 	handle     schdulerFramework.Handle
 	statsCache sync.Map
@@ -32,7 +30,6 @@ type TerminusSchedulerPlugin struct {
 	args       *TerminusArgs
 }
 
-// 确保实现了必要的接口
 var _ schdulerFramework.FilterPlugin = &TerminusSchedulerPlugin{}
 var _ schdulerFramework.ScorePlugin = &TerminusSchedulerPlugin{}
 
@@ -124,7 +121,7 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 	}
 	stats := val.(map[string]int64)
 
-	// 3. 计算剩余空间 (支持超卖)
+	//计算剩余空间 (支持超卖)
 	capacity := stats[nodeAnnotationTotal]
 	free := capacity - stats[nodeAnnotationUsed]
 	overCommit := int64(float64(capacity) * p.args.OversubscriptionRatio)

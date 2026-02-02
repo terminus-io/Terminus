@@ -11,7 +11,6 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// 定义上报的数据结构 (会变成 Annotation 的 Value)
 type NodeStorageStats struct {
 	TotalBytes      uint64  `json:"total"`
 	OvercommitRatio float64 `json:"ratio"` // 超卖比
@@ -27,9 +26,6 @@ func (r *reporter) ReportToAnnotation(ctx context.Context, diskUsage, diskTotal 
 
 	usage := fmt.Sprintf("%vGi", diskUsage/1024/1024/1024)
 	total := fmt.Sprintf("%vGi", diskTotal/1024/1024/1024)
-
-	// usage := resource.NewQuantity(int64(diskUsage)/GiB, resource.BinarySI)
-	// total := resource.NewQuantity(int64(diskTotal)/GiB, resource.BinarySI)
 	patchMap := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"annotations": map[string]string{

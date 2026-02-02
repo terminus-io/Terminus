@@ -21,7 +21,6 @@ func StartMetricsServer(ctx context.Context, collector prometheus.Collector, sto
 
 	srv := &http.Server{Addr: metricsAddr, Handler: mux}
 
-	// 启动一个 goroutine 监听关闭信号
 	go func() {
 		<-ctx.Done()
 		klog.Info("Shutting down metrics server...")

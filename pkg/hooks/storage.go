@@ -38,7 +38,6 @@ type StorageHook struct {
 	kClient kubernetes.Interface
 }
 
-// 构造函数：需要注入底层的 QuotaManager
 func NewStorageHook(qm quota.QuotaManager, store *metadata.AsyncStore, kClient kubernetes.Interface) nri.Hook {
 	return &StorageHook{
 		qm:      qm,
@@ -65,12 +64,11 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 		return nil
 	}
 
-	// 3. 直接获取 byte 值 (int64)
 	limitBytes := uint64(q.Value())
 
 	klog.InfoS("Parsed quota limit",
-		"raw", limitStr, // "10Gi"
-		"bytes", limitBytes, // 10737418240
+		"raw", limitStr,
+		"bytes", limitBytes,
 	)
 
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
@@ -90,12 +88,12 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 	klog.V(2).Infof("Target XFS Quota Path: %s, Quota ProjectID: %v", rootfsPath, snapshotID)
 
 	if err := h.qm.SetProjectID(rootfsPath, uint32(snapshotID)); err != nil {
-		klog.Errorf("Failed to apply quota: %v  11133", err)
+		klog.Errorf("Failed to set fs project id: %v ", err)
 	}
 
 	workPath := strings.TrimSuffix(rootfsPath, "/fs") + "/work"
 	if err := h.qm.SetProjectID(workPath, uint32(snapshotID)); err != nil {
-		klog.Errorf("Failed to apply quota: %v  111", err)
+		klog.Errorf("Failed to set work project id: %v  111", err)
 	}
 
 	if err := h.qm.SetQuota(uint32(snapshotID), limitBytes); err != nil {
@@ -113,10 +111,6 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 		klog.Warningf("%s/%s pod label update failed, It may affect the reporting of pod disk monitoring metrics, err: %v",
 			pod.Namespace, pod.Name, err)
 	}
-
-	// if err := applyXFSQuota(snapshotID, rootfsPath, limitMB); err != nil {
-	// 	klog.Errorf("Failed to apply quota: %v", err)
-	// }
 	return nil
 }
 

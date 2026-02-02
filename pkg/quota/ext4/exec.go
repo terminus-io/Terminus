@@ -76,7 +76,6 @@ func (e *Ext4CLI) RemoveQuota(dirPath string, projectID uint32) error {
 	}
 
 	if out, err := exec.Command("chattr", "-p", "0", dirPath).CombinedOutput(); err != nil {
-		// 容错：如果目录已经不存在了，可以忽略错误；存在则报错
 		return fmt.Errorf("重置目录 ProjectID 失败: %v, 输出: %s", err, string(out))
 	}
 

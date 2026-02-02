@@ -101,7 +101,7 @@ func (s *AsyncStore) TriggerRestore() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	klog.InfoS("🔍 开始查询 Pod...", "node", nodeName, "label", quotaEnableLabel)
+	klog.InfoS("[Restore Metrics] Start List Pods", "node", nodeName, "label", quotaEnableLabel)
 
 	pods, err := s.kClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{
 		FieldSelector: "spec.nodeName=" + nodeName,
@@ -109,7 +109,7 @@ func (s *AsyncStore) TriggerRestore() {
 	})
 
 	if err != nil {
-		klog.Errorf("❌[Restore Metrics] List Pods failed, monitoring metrics of existing pods may be affected: %v\n", err)
+		klog.Errorf("[Restore Metrics] List Pods failed, monitoring metrics of existing pods may be affected: %v\n", err)
 		return
 	}
 
@@ -120,17 +120,12 @@ func (s *AsyncStore) TriggerRestore() {
 				continue
 			}
 			containerName := strings.TrimPrefix(key, prefix)
-
-			// 3. 解析数值
 			projectID, err := strconv.ParseUint(val, 10, 32)
 			if err != nil {
-				klog.ErrorS(err, "⚠️ 跳过: 标签值不是有效的数字",
-					"pod", pod.Name, "container", containerName, "val", val)
 				continue
 			}
 
-			// 4. 日志 & 存入 Store
-			fmt.Printf("🎯 发现目标: [%s/%s] 容器: %s -> ProjectID: %d\n",
+			klog.V(4).Infof("[Restore Metrics] Target detected: [%s/%s] Container: %s -> ProjectID: %d; Start Restore this\n",
 				pod.Namespace, pod.Name, containerName, projectID)
 
 			s.TriggerUpdate(uint32(projectID), ContainerInfo{
@@ -142,5 +137,5 @@ func (s *AsyncStore) TriggerRestore() {
 		}
 	}
 
-	klog.Infof("%s container info metrics all restore", nodeName)
+	klog.Infof("[Restore Metrics] Node:%s container info metrics all restore", nodeName)
 }

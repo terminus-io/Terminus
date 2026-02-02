@@ -18,15 +18,12 @@ func GenrateK8sClient() (*kubernetes.Clientset, error) {
 
 		var kubeconfigPath string
 
-		// 优先读环境变量
 		if envVar := os.Getenv("KUBECONFIG"); envVar != "" {
 			kubeconfigPath = envVar
 		} else if home := homedir.HomeDir(); home != "" {
-			// 默认读 ~/.kube/config
 			kubeconfigPath = filepath.Join(home, ".kube", "config")
 		}
 
-		// 构建配置
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 		if err != nil {
 			return nil, err

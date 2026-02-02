@@ -8,7 +8,7 @@ type Enforcer struct {
 	SocketPath string
 	PluginName string
 	PluginIdx  string
-	Hooks      []Hook // 钩子列表
+	Hooks      []Hook
 }
 
 type Option func(*Enforcer)

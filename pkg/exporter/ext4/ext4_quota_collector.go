@@ -9,7 +9,6 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// 定义指标描述符
 var (
 	// 空间指标
 	descBytesUsed = prometheus.NewDesc(
@@ -49,7 +48,6 @@ func NewExt4Collector(mountPoint string, store *metadata.AsyncStore) *Ext4Collec
 	}
 }
 
-// Describe 必须实现：告诉 Prometheus 我们有哪些指标
 func (c *Ext4Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- descBytesUsed
 	ch <- descBytesLimit
@@ -57,7 +55,6 @@ func (c *Ext4Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- descInodesLimit
 }
 
-// Collect 核心逻辑：每次 Prometheus 来拉取时会被调用
 func (c *Ext4Collector) Collect(ch chan<- prometheus.Metric) {
 	blockReports, err := c.exec.FetchAllReports(c.mountPoint, "b")
 	if err != nil {
@@ -78,7 +75,7 @@ func (c *Ext4Collector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	// 2. 获取文件数数据 (Inodes)
+	// 获取文件数数据 (Inodes)
 	// 这里的 "i" 代表 Inode
 	inodeReports, err := c.exec.FetchAllReports(c.mountPoint, "i")
 	if err != nil {
@@ -87,7 +84,6 @@ func (c *Ext4Collector) Collect(ch chan<- prometheus.Metric) {
 		for id, r := range inodeReports {
 			containerInfo, ok := c.store.Get(id)
 			if !ok {
-				klog.Warning(id, "project ID is not found")
 				continue
 			}
 			idStr := fmt.Sprintf("%d", id)

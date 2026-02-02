@@ -47,17 +47,17 @@ func GetMountPoint(path string) (string, error) {
 		return "", err
 	}
 
-	// 2. 解析输出
+	//解析输出
 	// /dev/mapper/xxx      79738176  11561608  68160184  15% /dev/termination-log
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
 	if len(lines) < 2 {
 		return "", fmt.Errorf("unexpected df output format")
 	}
 
-	// 3. 获取最后一行
+	// 获取最后一行
 	lastLine := lines[len(lines)-2]
 
-	// 4. 获取第一列（即设备路径）
+	//获取第一列（即设备路径）
 	fields := strings.Fields(lastLine)
 	if len(fields) > 0 {
 		return fields[0], nil

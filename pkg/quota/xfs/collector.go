@@ -10,7 +10,6 @@ import (
 )
 
 func (e *XFSCLI) FetchAllReports(mountPoint string, typeFlag string) (map[uint32]quota.QuotaReport, error) {
-	// 关键参数：-N (省略头尾，方便解析)
 	cmdStr := fmt.Sprintf("report -p -n -N -%s", typeFlag)
 	cmd := exec.Command("xfs_quota", "-x", "-c", cmdStr, mountPoint)
 
@@ -33,7 +32,6 @@ func (e *XFSCLI) FetchAllReports(mountPoint string, typeFlag string) (map[uint32
 			continue
 		}
 
-		// 解析逻辑
 		idStr := strings.TrimPrefix(fields[0], "#")
 		idUint, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
@@ -49,7 +47,6 @@ func (e *XFSCLI) FetchAllReports(mountPoint string, typeFlag string) (map[uint32
 		if len(fields) >= 4 {
 			limit, _ = strconv.ParseUint(fields[3], 10, 64)
 		} else if len(fields) == 3 {
-			// 有些情况只输出了 hard limit
 			limit, _ = strconv.ParseUint(fields[2], 10, 64)
 		}
 
