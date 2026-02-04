@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: terminus-enforcer
+  labels:
+    {{- include "terminus.labels" . | nindent 4 }}
+    app: terminus-enforcer
+spec:
+  selector:
+    matchLabels:
+      app: terminus-enforcer
+  template:
+    metadata:
+      labels:
+        app: terminus-enforcer
+    spec:
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      priorityClassName: {{ .Values.enforcer.priorityClassName }}
+      containers:
+      - name: terminus-enforcer
+        image: "{{ .Values.images.enforcer.repository }}:{{ .Values.images.enforcer.tag }}"
+        imagePullPolicy: {{ .Values.images.enforcer.pullPolicy }}
+        ports:
+        - containerPort: 9201
+          name: http
+          protocol: TCP
+        terminationMessagePath: /tmp/termination-log
+        terminationMessagePolicy: File
+        securityContext:
+          privileged: true
+        command:
+        - /usr/bin/terminus-enforcer
+        args:
+          - "-v={{ .Values.enforcer.logLevel }}"
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: host-root
+          mountPath: /dev
+        - name: containerd-root
+          mountPath: /var/lib/containerd
+        - mountPath: /var/run/nri/nri.sock
+          name: socket
+          readOnly: true
+      volumes:
+      - name: containerd-root
+        hostPath:
+          path: /var/lib/containerd
+          type: Directory
+      - hostPath:
+          path: /var/run/nri/nri.sock
+          type: Socket
+        name: socket
+      - name: host-root
+        hostPath:
+          path: /dev
+          type: Directory

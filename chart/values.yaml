@@ -1,0 +1,27 @@
+images:
+  enforcer:
+    repository: 10.29.231.164/ghcr.m.daocloud.io/terminus/enforcer
+    tag: latest
+    pullPolicy: IfNotPresent
+  scheduler:
+    repository: 10.29.231.164/ghcr.m.daocloud.io/terminus/scheduler
+    tag: latest
+    pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: "terminus-admin"
+
+scheduler:
+  replicas: 3
+  logLevel: "4"
+  oversubscriptionRatio: 1.5
+  leaderElect: true
+
+enforcer:
+  logLevel: "4"
+  priorityClassName: system-node-critical
+
+service:
+  type: ClusterIP
+  port: 9201

@@ -2,14 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: terminus-scheduler
-  namespace: terminus
   labels:
+    {{- include "terminus.labels" . | nindent 4 }}
     app: terminus-scheduler
 spec:
   selector:
     matchLabels:
       app: terminus-scheduler
-  replicas: 1
+  replicas: {{ .Values.scheduler.replicas }}
   template:
     metadata:
       labels:
@@ -20,18 +20,17 @@ spec:
         effect: NoSchedule
       - key: node-role.kubernetes.io/control-plane
         effect: NoSchedule
-      serviceAccount: terminus-admin
-      serviceAccountName: terminus-admin
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
       - name: terminus-scheduler
-        image: ghcr.m.daocloud.io/terminus/scheduler:latest
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.images.scheduler.repository }}:{{ .Values.images.scheduler.tag }}"
+        imagePullPolicy: {{ .Values.images.scheduler.pullPolicy }}
         command:
         - /usr/bin/terminus-scheduler
         args:
-         - -v=4
+         - -v={{ .Values.scheduler.logLevel }}
          - --bind-address=0.0.0.0
-         - --leader-elect=false
+         - --leader-elect={{ .Values.scheduler.leaderElect }}
          - --leader-elect-resource-name=terminus-scheduler
          - --config=/etc/terminus/terminus-scheduler-config.yaml
         volumeMounts:

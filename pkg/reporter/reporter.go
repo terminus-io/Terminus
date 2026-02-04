@@ -31,7 +31,7 @@ func (r *reporter) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	reportFunc := func() {
-		diskTotal, err := utils.GetDiskUsage("/")
+		diskTotal, err := utils.GetDiskUsage("/var/lib/containerd")
 		if err != nil {
 			klog.Warningf("Failed to get disk usage: %v", err)
 			return

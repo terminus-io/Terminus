@@ -15,6 +15,7 @@ import (
 	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
 	"github.com/Frank-svg-dev/Terminus/pkg/nri"
 	"github.com/Frank-svg-dev/Terminus/pkg/quota"
+	"github.com/Frank-svg-dev/Terminus/pkg/utils"
 	"github.com/containerd/nri/pkg/api"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,12 +24,14 @@ import (
 )
 
 const (
-	DiskAnnotation      = "storage.terminus.io/size"
-	ContainerdBasePath  = "/run/containerd/io.containerd.runtime.v2.task/k8s.io/"
-	ContainerdRootPath  = "/var/lib/containerd"
-	SystemMountInfoFile = "/proc/1/mountinfo"
-	ProjectIDAnnotation = "storage.terminus.io/project-id"
-	quotaEnableLabel    = "storage.terminus.io/quota"
+	DiskAnnotation         = "storage.terminus.io/size"
+	ContainerdBasePath     = "/run/containerd/io.containerd.runtime.v2.task/k8s.io/"
+	ContainerdRootPath     = "/var/lib/containerd"
+	SystemMountInfoFile    = "/proc/1/mountinfo"
+	ProjectIDAnnotation    = "storage.terminus.io/project-id"
+	quotaEnableLabel       = "storage.terminus.io/quota"
+	defaultDiskSize        = "2Gi"
+	defaultSideCarDiskSize = "500Mi"
 )
 
 // StorageHook 负责处理磁盘限额
@@ -53,9 +56,18 @@ func (h *StorageHook) Process(ctx context.Context, pod *api.PodSandbox, containe
 }
 
 func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
-	limitStr, ok := pod.Annotations[DiskAnnotation]
+
+	prefix := DiskAnnotation + "." + container.Name
+	limitStr, ok := pod.Annotations[prefix]
 	if !ok {
-		return nil
+		limitStr, ok = pod.Annotations[DiskAnnotation]
+		if !ok {
+			if utils.IsSidecar(container.Name) {
+				limitStr = defaultSideCarDiskSize
+			} else {
+				limitStr = defaultDiskSize
+			}
+		}
 	}
 
 	q, err := resource.ParseQuantity(limitStr)

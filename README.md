@@ -96,7 +96,9 @@ Edit your `/etc/containerd/config.toml` to enable the NRI plugin:
 
 ### 2. Install Terminus via Helm
 
-*(Coming soon)*
+```bash
+helm install terminus ./chart -n terminus --create-namespace
+```
 
 ### 3. Manual Installation
 
@@ -119,7 +121,7 @@ kubectl apply -f deploy/manifests/terminus-scheduler.yaml
 
 ### 1. Enforcing Limits via Annotation
 
-Simply add the `storage.terminus.io/size` annotation to your Pod. Terminus will automatically inject the Project Quota limit.
+Simply add the `storage.terminus.io/size` or `storage.terminus.io/size.${containerName}` annotation to your Pod Or A specific container within a Pod. Terminus will automatically inject the Project Quota limit.
 
 ```yaml
 apiVersion: v1
@@ -129,6 +131,7 @@ metadata:
   annotations:
     # Limit the Rootfs (Overlayfs) to 10Gi (Hard Limit)
     storage.terminus.io/size: "10Gi"
+    storage.terminus.io/size.name: "5Gi"
 spec:
   containers:
   - name: nginx
@@ -136,7 +139,7 @@ spec:
 
 ```
 
-<!-- ### 2. Configuring Scheduling Policy
+### 2. Configuring Scheduling Policy
 
 You can configure the `Terminus-Scheduler` via ConfigMap to set the over-provisioning strategy.
 
@@ -145,16 +148,31 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: terminus-scheduler-config
-  namespace: kube-system
+  namespace: terminus
 data:
-  config.yaml: |
-    policy:
-      # Reject scheduling if physical usage > 85%
-      physicalThreshold: 85% 
-      # Allow allocating up to 200% of physical capacity (Over-commitment)
-      overProvisioningRate: 2.0
+  terminus-scheduler-config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1
+    kind: KubeSchedulerConfiguration
+    leaderElection:
+      leaderElect: true
+      resourceName: terminus-scheduler
+      resourceNamespace: terminus
+    profiles:
+      - schedulerName: terminus-scheduler
+        plugins:
+          filter:
+            enabled:
+              - name: terminus-scheduler
+          score:
+            enabled:
+              - name: terminus-scheduler
+                weight: 1
+    pluginConfig:
+      - name: terminus-scheduler
+        args:
+          oversubscriptionRatio: 1.5
 
-``` -->
+```
 
 ## 🗺️ Roadmap
 

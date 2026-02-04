@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Frank-svg-dev/Terminus/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,8 +20,8 @@ const (
 	SchedulerName       = "terminus-scheduler"
 	nodeAnnotationTotal = "storage.terminus.io/physical-total" // NRI 插件上报的 Key
 	nodeAnnotationUsed  = "storage.terminus.io/physical-used"
-	podLimitAnnotation  = "storage.terminus.io/size" // Pod 申请的大小
-	threshold           = 0.95
+	// podLimitAnnotation  = "storage.terminus.io/size" // Pod 申请的大小
+	threshold = 0.95
 )
 
 type TerminusSchedulerPlugin struct {
@@ -104,17 +105,7 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 	if node == nil {
 		return schdulerFramework.NewStatus(schdulerFramework.Error, "node not found")
 	}
-	requestStr := pod.Annotations[podLimitAnnotation]
-	if requestStr == "" {
-		return nil
-	}
-
-	requestBytes, err := resource.ParseQuantity(requestStr)
-	if err != nil {
-		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable,
-			fmt.Sprintf("Invalid Parse : %s ", requestStr))
-	}
-
+	requestBytes := utils.GetPodTotalStorage(pod)
 	val, ok := p.statsCache.Load(node.Name)
 	if !ok {
 		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable, "Node storage stats missing")
@@ -125,19 +116,15 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 	capacity := stats[nodeAnnotationTotal]
 	free := capacity - stats[nodeAnnotationUsed]
 	overCommit := int64(float64(capacity) * p.args.OversubscriptionRatio)
-
 	var nodeExistingAllocated int64 = 0
+
 	for _, podInfo := range nodeInfo.Pods {
-		if str, ok := podInfo.Pod.Annotations[podLimitAnnotation]; ok {
-			if q, err := resource.ParseQuantity(str); err == nil {
-				nodeExistingAllocated += q.Value()
-			}
-		}
+		nodeExistingAllocated += utils.GetPodTotalStorage(podInfo.Pod)
 	}
 
-	if (nodeExistingAllocated + requestBytes.Value()) >= overCommit {
+	if (nodeExistingAllocated + requestBytes) >= overCommit {
 		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable,
-			fmt.Sprintf("Insufficient  storage: req %d, free %d", requestBytes.Value(), overCommit-nodeExistingAllocated))
+			fmt.Sprintf("Insufficient  storage: req %d, free %d", requestBytes, overCommit-nodeExistingAllocated))
 	}
 
 	safeLimit := int64(float64(capacity) * threshold)
@@ -145,7 +132,7 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 	if stats[nodeAnnotationUsed] > safeLimit {
 		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable,
 			fmt.Sprintf("Insufficient Physical storage: used %d > limit %d (95%%)",
-				requestBytes.Value(), free))
+				requestBytes, free))
 	}
 
 	klog.V(4).Infof("%s pod schedule node %s ", pod.Name, node.Name)
@@ -167,17 +154,15 @@ func (p *TerminusSchedulerPlugin) Score(ctx context.Context, state *schdulerFram
 	capacity := stats[nodeAnnotationTotal]
 	free := capacity - stats[nodeAnnotationUsed]
 	overCommit := int64(float64(capacity) * p.args.OversubscriptionRatio)
+	podRequest := utils.GetPodTotalStorage(pod)
 
 	var existingAllocated int64 = 0
+
 	for _, podInfo := range nodeInfo.Pods {
-		if str, ok := podInfo.Pod.Annotations[podLimitAnnotation]; ok {
-			if q, err := resource.ParseQuantity(str); err == nil {
-				existingAllocated += q.Value()
-			}
-		}
+		existingAllocated += utils.GetPodTotalStorage(podInfo.Pod)
 	}
 
-	logicalFree := overCommit - existingAllocated
+	logicalFree := overCommit - (existingAllocated + podRequest)
 
 	if logicalFree <= 0 || free <= 0 {
 		return 0, nil

@@ -3,6 +3,7 @@ kind: KubeSchedulerConfiguration
 leaderElection:
   leaderElect: true
   resourceName: terminus-scheduler
+  resourceNamespace: terminus
 profiles:
   - schedulerName: terminus-scheduler
     plugins:
@@ -14,6 +15,6 @@ profiles:
           - name: terminus-scheduler
             weight: 1
     pluginConfig:
-      - name: Terminus-scheduler
+      - name: terminus-scheduler
         args:
           oversubscriptionRatio: 1.5

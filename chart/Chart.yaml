@@ -1,0 +1,6 @@
+piVersion: v2
+name: terminus
+description: A Helm chart for Terminus Enforcer and Scheduler
+type: application
+version: 0.1.0
+appVersion: "latest"
