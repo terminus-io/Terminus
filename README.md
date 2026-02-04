@@ -131,7 +131,7 @@ metadata:
   annotations:
     # Limit the Rootfs (Overlayfs) to 10Gi (Hard Limit)
     storage.terminus.io/size: "10Gi"
-    storage.terminus.io/size.name: "5Gi"
+    storage.terminus.io/size.nginx: "5Gi"
 spec:
   containers:
   - name: nginx
