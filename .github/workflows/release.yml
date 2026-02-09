@@ -4,9 +4,8 @@ on:
   push:
     branches:
       - main
-    # 暂时注释掉 paths，防止你修改 .yml 文件时不触发
-    # paths:
-    #   - 'chart/**'
+    paths:
+      - 'chart/**'
   workflow_dispatch:
 
 jobs:
@@ -34,3 +33,4 @@ jobs:
           charts_dir: chart
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
