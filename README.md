@@ -173,6 +173,9 @@ data:
 
 ```
 
+## Grafana Dashboard
+![alt text](./image/grafana_dashboard.png)
+
 ## 🗺️ Roadmap
 
 * [x] **v0.1 (MVP)**: NRI plugin implementation for XFS Project Quota.
