@@ -94,7 +94,13 @@ Edit your `/etc/containerd/config.toml` to enable the NRI plugin:
 *Restart containerd after editing.*
 
 ### 2. Install Terminus via Helm
+##### Helm Chart
+```bash
+helm repo add terminus https://terminus-io.github.io/Terminus
+helm install terminus terminus/terminus --version 0.1.0 -n terminus --create-namespace
+```
 
+##### Local
 ```bash
 helm install terminus ./charts/terminus -n terminus --create-namespace
 ```
