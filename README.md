@@ -33,12 +33,11 @@ In standard Kubernetes, ephemeral storage limits (`requests.ephemeral-storage`) 
 * **🛡️ Kernel-Level Isolation (Terminus-Enforcer)**
   Enforce strict disk usage limits on container Rootfs using XFS/Ext4 Project Quota via **NRI (Node Resource Interface)**. Zero overhead, immediate enforcement.
 
-* **🧠 Disk-Aware Scheduling (Terminus-Gatekeeper)**
+* **🧠 Disk-Aware Scheduling (Terminus-Scheduler)**
   A scheduler plugin that filters and scores nodes based on **Real Physical Usage** and configurable **Over-provisioning Rates**. It prevents scheduling pods to nodes that are physically dangerously full, regardless of their allocation status.
 
-* **⚡ Active Protection (Terminus-Sentinel)**
-  An efficient node agent that monitors Project ID usage and triggers graceful **Eviction** when the physical disk is critically full (e.g., >90%), preventing node lock-up.
-
+* **⚡ Active Protection (Terminus-Exporter)**
+  An efficient node agent that monitors Project ID usage and triggers graceful
 ## 🏗️ Architecture
 
 Terminus consists of three micro-components working in harmony:
