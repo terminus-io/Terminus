@@ -67,10 +67,9 @@ func (c *Ext4Collector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 			idStr := fmt.Sprintf("%d", id)
-			// xfs_quota 默认单位是 1KB，转为 Bytes
-			ch <- prometheus.MustNewConstMetric(descBytesUsed, prometheus.GaugeValue, float64(r.Used*1024),
+			ch <- prometheus.MustNewConstMetric(descBytesUsed, prometheus.GaugeValue, float64(r.Used),
 				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
-			ch <- prometheus.MustNewConstMetric(descBytesLimit, prometheus.GaugeValue, float64(r.Limit*1024),
+			ch <- prometheus.MustNewConstMetric(descBytesLimit, prometheus.GaugeValue, float64(r.Limit),
 				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
 		}
 	}

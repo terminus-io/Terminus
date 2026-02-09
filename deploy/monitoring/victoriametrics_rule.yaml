@@ -1,0 +1,59 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: terminus-victoriametrics-rules
+  namespace: terminus
+spec:
+  groups:
+    - labels:
+        group_id: 01kh0mahgn14pghcx5gsfhkcnb
+        target_type: cluster
+      name: terminus-storage.rules
+      rules:
+        - alert: ContainerEphemeralStorageUsageWarning
+          annotations:
+            description: >-
+              Pod {{ $labels.namespace }}/{{ $labels.pod }} 的容器 {{
+              $labels.container }} 临时存储使用率已达到 {{ $value | printf "%.1f" }}%。
+            summary: 容器临时存储使用率过高 ({{ $labels.pod }})
+            value: '{{$value}}'
+          expr: >-
+            (terminus_storage_used_bytes / terminus_storage_limit_bytes) * 100 >
+            85
+          for: 1m
+          labels:
+            rule_id: 01kh0mahgn82t7qcvwfjwr3tbk
+            severity: warning
+            source: promql
+        - alert: ContainerEphemeralStorageUsageCritical
+          annotations:
+            description: >-
+              紧急！Pod {{ $labels.namespace }}/{{ $labels.pod }} 的容器 {{
+              $labels.container }} 临时存储使用率已超过 95% (当前值: {{ $value | printf
+              "%.1f" }}%)，可能导致 Pod 被驱逐。
+            summary: 容器临时存储即将耗尽 ({{ $labels.pod }})
+            value: '{{$value}}'
+          expr: >-
+            (terminus_storage_used_bytes / terminus_storage_limit_bytes) * 100 >
+            95
+          for: 2m
+          labels:
+            rule_id: 01kh0mahgqscwq4qn3711hztg1
+            severity: critical
+            source: promql
+        - alert: ContainerInodeUsageWarning
+          annotations:
+            description: >-
+              Pod {{ $labels.namespace }}/{{ $labels.pod }} (容器: {{
+              $labels.container }}) 的文件数量(Inode)使用率已达到 {{ $value | printf "%.1f"
+              }}%。
+            summary: 容器 Inode 使用率过高 ({{ $labels.pod }})
+            value: '{{$value}}'
+          expr: >-
+            (terminus_storage_inodes_used / terminus_storage_inodes_limit) * 100
+            > 85
+          for: 5m
+          labels:
+            rule_id: 01kh0mahgq7erzt7jagkqa1npw
+            severity: warning
+            source: promql

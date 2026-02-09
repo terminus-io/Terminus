@@ -1,0 +1,18 @@
+piVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: terminus-exporter-sm
+  namespace: terminus
+spec:
+  endpoints:
+  - honorLabels: true
+    interval: 15s
+    path: /metrics
+    port: metrics-port
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - terminus
+  selector:
+    matchLabels:
+      app: terminus-enforcer

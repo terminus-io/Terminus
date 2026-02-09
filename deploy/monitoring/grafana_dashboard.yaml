@@ -1,0 +1,506 @@
+apiVersion: integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  labels:
+    app: grafana
+    component: terminus
+  name: terminus-storage-dashboard
+  namespace: terminus
+spec:
+  json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 80 }
+                ]
+              },
+              "unit": "decbytes"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "id": 1,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.0.0",
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "sum(terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})",
+              "legendFormat": "Total Usage",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Total Storage Used",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "#EAB839", "value": 75 },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "id": 2,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }
+          },
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "max((terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} / terminus_storage_limit_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}) * 100)",
+              "legendFormat": "Max Utilization",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Highest Disk Pressure (%)",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 80 }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "id": 3,
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "sum(terminus_storage_inodes_used{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Total Inodes Used",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "id": 4,
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "max((terminus_storage_inodes_used{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} / terminus_storage_inodes_limit{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}) * 100)",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Highest Inode Pressure (%)",
+          "type": "stat"
+        },
+        {
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
+          "id": 10,
+          "title": "Storage Space Metrics (Bytes)",
+          "type": "row"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "lineInterpolation": "linear",
+                "spanNulls": false
+              },
+              "unit": "decbytes"
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byRegexp", "options": ".*Limit.*" },
+                "properties": [
+                  { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
+                  { "id": "custom.lineWidth", "value": 2 },
+                  { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 9, "w": 16, "x": 0, "y": 5 },
+          "id": 5,
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "legendFormat": "{{pod}} - {{container}} (Used)",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "terminus_storage_limit_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "legendFormat": "{{pod}} - {{container}} (Limit)",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Storage Usage vs Limit Over Time",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "#EAB839", "value": 8589934592 },
+                  { "color": "red", "value": 10737418240 }
+                ]
+              },
+              "unit": "decbytes"
+            }
+          },
+          "gridPos": { "h": 9, "w": 8, "x": 16, "y": 5 },
+          "id": 6,
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "horizontal",
+            "showUnfilled": true
+          },
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "topk(10, terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})",
+              "legendFormat": "{{pod}} / {{container}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Top 10 Storage Consumers",
+          "type": "bargauge"
+        },
+        {
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+          "id": 11,
+          "title": "Inode Metrics (File Count)",
+          "type": "row"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 15
+              },
+              "unit": "short"
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byRegexp", "options": ".*Limit.*" },
+                "properties": [
+                  { "id": "custom.lineStyle", "value": { "dash": [10, 10], "fill": "dash" } },
+                  { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 16, "x": 0, "y": 15 },
+          "id": 7,
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "terminus_storage_inodes_used{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "legendFormat": "{{pod}} - {{container}} (Inodes Used)",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "terminus_storage_inodes_limit{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "legendFormat": "{{pod}} - {{container}} (Inodes Limit)",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Inode Usage vs Limit",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
+          "id": 8,
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "topk(10, terminus_storage_inodes_used{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})",
+              "legendFormat": "{{pod}} / {{container}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Top 10 Inode Consumers",
+          "type": "bargauge"
+        },
+        {
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+          "id": 12,
+          "title": "Debug Information",
+          "type": "row"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "custom": { "align": "auto", "inspect": false },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Usage" },
+                "properties": [ { "id": "unit", "value": "decbytes" } ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Limit" },
+                "properties": [ { "id": "unit", "value": "decbytes" } ]
+              },
+              {
+                "matcher": { "id": "byName", "options": "Utilization" },
+                "properties": [
+                  { "id": "unit", "value": "percent" },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "#EAB839", "value": 80 },
+                        { "color": "red", "value": 95 }
+                      ]
+                    }
+                  },
+                  { "id": "custom.cellOptions", "value": { "mode": "basic", "type": "gauge" } }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+          "id": 9,
+          "options": {
+            "footer": { "show": false },
+            "showHeader": true,
+            "sortBy": [ { "desc": true, "displayName": "Utilization" } ]
+          },
+          "targets": [
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "format": "table",
+              "instant": true,
+              "refId": "A"
+            },
+            {
+              "datasource": "Prometheus",
+              "editorMode": "code",
+              "expr": "terminus_storage_limit_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "format": "table",
+              "instant": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Detailed Container Quota Table",
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true, "__name__": true, "job": true, "instance": true, "endpoint": true, "service": true
+                },
+                "renameByName": {
+                  "Value #A": "Usage",
+                  "Value #B": "Limit"
+                }
+              }
+            },
+            {
+              "id": "calculateField",
+              "options": {
+                "alias": "Utilization",
+                "binary": { "left": "Usage", "operator": "/", "right": "Limit" },
+                "mode": "binary"
+              }
+            },
+            {
+              "id": "calculateField",
+              "options": {
+                "alias": "Utilization",
+                "binary": { "left": "Utilization", "operator": "*", "right": "100" },
+                "mode": "binary"
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["Terminus", "Storage", "Quota"],
+      "templating": {
+        "list": [
+          {
+            "datasource": "Prometheus",
+            "definition": "label_values(terminus_storage_used_bytes, namespace)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Namespace",
+            "multi": true,
+            "name": "namespace",
+            "query": "label_values(terminus_storage_used_bytes, namespace)",
+            "refresh": 1,
+            "sort": 1,
+            "type": "query"
+          },
+          {
+            "datasource": "Prometheus",
+            "definition": "label_values(terminus_storage_used_bytes{namespace=~\"$namespace\"}, pod)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Pod",
+            "multi": true,
+            "name": "pod",
+            "query": "label_values(terminus_storage_used_bytes{namespace=~\"$namespace\"}, pod)",
+            "refresh": 1,
+            "sort": 1,
+            "type": "query"
+          },
+          {
+            "datasource": "Prometheus",
+            "definition": "label_values(terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\"}, container)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Container",
+            "multi": true,
+            "name": "container",
+            "query": "label_values(terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\"}, container)",
+            "refresh": 1,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "time": { "from": "now-1h", "to": "now" },
+      "timezone": "browser",
+      "title": "Terminus Ephemeral Storage Governance",
+      "uid": "terminus-storage-01",
+      "version": 8
+    }
