@@ -2,5 +2,5 @@ apiVersion: v2
 name: terminus
 description: A Helm chart for Terminus Enforcer and Scheduler
 type: application
-version: v0.1.0
+version: v0.1.1
 appVersion: "latest"

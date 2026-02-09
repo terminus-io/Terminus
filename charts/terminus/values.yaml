@@ -1,10 +1,10 @@
 images:
   enforcer:
-    repository: 10.29.231.164/ghcr.m.daocloud.io/terminus/enforcer
+    repository: ghcr.io/terminus/enforcer
     tag: latest
     pullPolicy: IfNotPresent
   scheduler:
-    repository: 10.29.231.164/ghcr.m.daocloud.io/terminus/scheduler
+    repository: ghcr.io/terminus/scheduler
     tag: latest
     pullPolicy: IfNotPresent
 
