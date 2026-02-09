@@ -1,4 +1,4 @@
-piVersion: v2
+apiVersion: v2
 name: terminus
 description: A Helm chart for Terminus Enforcer and Scheduler
 type: application
