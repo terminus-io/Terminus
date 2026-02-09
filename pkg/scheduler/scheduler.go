@@ -105,6 +105,15 @@ func (p *TerminusSchedulerPlugin) Filter(ctx context.Context, state *schdulerFra
 	if node == nil {
 		return schdulerFramework.NewStatus(schdulerFramework.Error, "node not found")
 	}
+
+	_, totalanno := node.Annotations[nodeAnnotationTotal]
+	_, useanno := node.Annotations[nodeAnnotationUsed]
+
+	if !totalanno || !useanno {
+		return schdulerFramework.NewStatus(schdulerFramework.Unschedulable,
+			fmt.Sprintf("%s not have annotation , matbe not open quota feaure, please check , skip this....", node.Name))
+	}
+
 	requestBytes := utils.GetPodTotalStorage(pod)
 	val, ok := p.statsCache.Load(node.Name)
 	if !ok {

@@ -84,3 +84,62 @@ func (r *reporter) ReportToAnnotation(ctx context.Context, diskUsage, diskTotal 
 
 	return nil
 }
+
+func (r *reporter) ResetReportAnnotation() error {
+	patchMap := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				nodeStoragePhyTotal: nil,
+				nodeStoragePhyUsed:  nil,
+			},
+		},
+	}
+
+	patchData, err := json.Marshal(patchMap)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.kClient.CoreV1().Nodes().Patch(
+		context.Background(),
+		os.Getenv("NODE_NAME"),
+		types.MergePatchType,
+		patchData,
+		metav1.PatchOptions{},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete node annotation: %w", err)
+	}
+
+	klog.V(4).InfoS("Delete node stats annotation", "node", os.Getenv("NODE_NAME"))
+
+	statusPatch := map[string]interface{}{
+		"status": map[string]interface{}{
+			"capacity": map[string]interface{}{
+				nodeStoragePhyTotal: nil,
+			},
+			"allocatable": map[string]interface{}{
+				nodeStoragePhyTotal: nil,
+			},
+		},
+	}
+
+	statusJson, _ := json.Marshal(statusPatch)
+
+	_, err = r.kClient.CoreV1().Nodes().Patch(
+		context.Background(),
+		os.Getenv("NODE_NAME"),
+		types.MergePatchType,
+		statusJson,
+		metav1.PatchOptions{},
+		"status",
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete node resource status: %w", err)
+	}
+
+	klog.V(4).InfoS("Delete node resource status", "node", os.Getenv("NODE_NAME"))
+	return nil
+}

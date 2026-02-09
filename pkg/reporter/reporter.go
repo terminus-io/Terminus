@@ -48,6 +48,9 @@ func (r *reporter) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			if err := r.ResetReportAnnotation(); err != nil {
+				klog.Warningf("Reset Node Annotation failed, err: %v", err)
+			}
 			klog.Info("Reporter context cancelled, stopping loop.")
 			return
 

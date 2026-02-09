@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,6 +43,11 @@ var rootCmd = &cobra.Command{
 	Short: "Terminus NRI Plugin",
 	Long:  `Terminus Enforcer listens to NRI events and applies Project Quota limits.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		for !checkContainerdRootPathQuotaEnabled() {
+			klog.Warning("Waiting for /var/lib/containerd to have prjquota enabled...")
+			time.Sleep(5 * time.Second)
+		}
 
 		if os.Getenv("NODE_NAME") == "" {
 			return errors.New("NODE_NAME var is empty, please export NODE_NAME before")
@@ -142,4 +148,16 @@ func genrateQuotaManager(path string, store *metadata.AsyncStore) (quota.QuotaMa
 	default:
 		return nil, nil, fmt.Errorf("Unknown or other FS. Magic Number: %x\nSupport fileSystem: xfs / ext4", fsType)
 	}
+}
+
+func checkContainerdRootPathQuotaEnabled() bool {
+	data, _ := os.ReadFile("/proc/mounts")
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 4 && fields[1] == containerdPath {
+			opts := "," + fields[3] + ","
+			return strings.Contains(opts, ",prjquota,")
+		}
+	}
+	return false
 }
