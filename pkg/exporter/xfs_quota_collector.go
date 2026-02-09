@@ -3,9 +3,9 @@ package exporter
 import (
 	"fmt"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
-	"github.com/Frank-svg-dev/Terminus/pkg/quota/xfs"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/terminus-io/Terminus/pkg/metadata"
+	"github.com/terminus-io/Terminus/pkg/quota/xfs"
 	"k8s.io/klog/v2"
 )
 

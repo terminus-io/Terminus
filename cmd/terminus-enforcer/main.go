@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Frank-svg-dev/Terminus/cmd/terminus-enforcer/cmd"
+	"github.com/terminus-io/Terminus/cmd/terminus-enforcer/cmd"
 )
 
 func main() {

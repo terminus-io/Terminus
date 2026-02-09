@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/terminus-io/Terminus/pkg/metadata"
 	"k8s.io/klog/v2"
 )
 

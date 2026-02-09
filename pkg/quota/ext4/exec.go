@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/quota"
-	"github.com/Frank-svg-dev/Terminus/pkg/utils"
+	"github.com/terminus-io/Terminus/pkg/quota"
+	"github.com/terminus-io/Terminus/pkg/utils"
 	"k8s.io/klog/v2"
 )
 

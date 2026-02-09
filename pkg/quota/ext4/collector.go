@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/quota"
+	"github.com/terminus-io/Terminus/pkg/quota"
 )
 
 func (e *Ext4CLI) FetchAllReports(mountPoint string, typeFlag string) (map[uint32]quota.QuotaReport, error) {

@@ -12,11 +12,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
-	"github.com/Frank-svg-dev/Terminus/pkg/nri"
-	"github.com/Frank-svg-dev/Terminus/pkg/quota"
-	"github.com/Frank-svg-dev/Terminus/pkg/utils"
 	"github.com/containerd/nri/pkg/api"
+	"github.com/terminus-io/Terminus/pkg/metadata"
+	"github.com/terminus-io/Terminus/pkg/nri"
+	"github.com/terminus-io/Terminus/pkg/quota"
+	"github.com/terminus-io/Terminus/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"

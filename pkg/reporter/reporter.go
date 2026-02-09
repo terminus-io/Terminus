@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
-	"github.com/Frank-svg-dev/Terminus/pkg/utils"
+	"github.com/terminus-io/Terminus/pkg/metadata"
+	"github.com/terminus-io/Terminus/pkg/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )

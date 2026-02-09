@@ -3,9 +3,9 @@ package ext4
 import (
 	"fmt"
 
-	"github.com/Frank-svg-dev/Terminus/pkg/metadata"
-	"github.com/Frank-svg-dev/Terminus/pkg/quota/ext4"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/terminus-io/Terminus/pkg/metadata"
+	"github.com/terminus-io/Terminus/pkg/quota/ext4"
 	"k8s.io/klog/v2"
 )
 
