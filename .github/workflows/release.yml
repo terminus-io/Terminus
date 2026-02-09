@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'chart/**' # 监听 chart 目录的变化
+    # 暂时注释掉 paths，防止你修改 .yml 文件时不触发
+    # paths:
+    #   - 'chart/**'
+  workflow_dispatch:
 
 jobs:
   release:
