@@ -363,11 +363,17 @@ spec:
             "overrides": [
               {
                 "matcher": { "id": "byName", "options": "Usage" },
-                "properties": [ { "id": "unit", "value": "decbytes" } ]
+                "properties": [
+                  { "id": "unit", "value": "decbytes" },
+                  { "id": "custom.width", "value": 120 }
+                ]
               },
               {
                 "matcher": { "id": "byName", "options": "Limit" },
-                "properties": [ { "id": "unit", "value": "decbytes" } ]
+                "properties": [
+                  { "id": "unit", "value": "decbytes" },
+                  { "id": "custom.width", "value": 120 }
+                ]
               },
               {
                 "matcher": { "id": "byName", "options": "Utilization" },
@@ -400,7 +406,7 @@ spec:
             {
               "datasource": "Prometheus",
               "editorMode": "code",
-              "expr": "terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "expr": "sum by (namespace, pod, container) (terminus_storage_used_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})",
               "format": "table",
               "instant": true,
               "refId": "A"
@@ -408,7 +414,7 @@ spec:
             {
               "datasource": "Prometheus",
               "editorMode": "code",
-              "expr": "terminus_storage_limit_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "expr": "sum by (namespace, pod, container) (terminus_storage_limit_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})",
               "format": "table",
               "instant": true,
               "refId": "B"
