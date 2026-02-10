@@ -17,7 +17,6 @@ func WithSocketPath(p string) Option { return func(e *Enforcer) { e.SocketPath =
 func WithPluginName(n string) Option { return func(e *Enforcer) { e.PluginName = n } }
 func WithPluginIdx(i string) Option  { return func(e *Enforcer) { e.PluginIdx = i } }
 
-// WithHook 注册钩子
 func WithHook(h Hook) Option {
 	return func(e *Enforcer) {
 		klog.InfoS("Plugin register", "name", h.Name())
