@@ -40,6 +40,8 @@ spec:
         args:
           - "-v={{ .Values.enforcer.logLevel }}"
         env:
+        - name: CONTAINERD_PATH
+          value: {{ .Values.enforcer.containerdBasePath }}
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -48,14 +50,14 @@ spec:
         - name: host-root
           mountPath: /dev
         - name: containerd-root
-          mountPath: /var/lib/containerd
+          mountPath: {{ .Values.enforcer.containerdBasePath }}
         - mountPath: /var/run/nri/nri.sock
           name: socket
           readOnly: true
       volumes:
       - name: containerd-root
         hostPath:
-          path: /var/lib/containerd
+          path: {{ .Values.enforcer.containerdBasePath }}
           type: Directory
       - hostPath:
           path: /var/run/nri/nri.sock

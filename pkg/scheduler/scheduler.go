@@ -20,8 +20,7 @@ const (
 	SchedulerName       = "terminus-scheduler"
 	nodeAnnotationTotal = "storage.terminus.io/physical-total" // NRI 插件上报的 Key
 	nodeAnnotationUsed  = "storage.terminus.io/physical-used"
-	// podLimitAnnotation  = "storage.terminus.io/size" // Pod 申请的大小
-	threshold = 0.95
+	threshold           = 0.95
 )
 
 type TerminusSchedulerPlugin struct {
@@ -46,7 +45,7 @@ func New(ctx context.Context, obj runtime.Object, h schdulerFramework.Handle) (s
 		return nil, fmt.Errorf("oversubscriptionRatio must be >= 1.0, got %f", args.OversubscriptionRatio)
 	}
 
-	fmt.Printf("🚀 Terminus Scheduler loaded with Ratio: %.2f\n", args.OversubscriptionRatio)
+	klog.V(4).Infof("Terminus Scheduler loaded with Ratio: %.2f\n", args.OversubscriptionRatio)
 
 	podLister := h.SharedInformerFactory().Core().V1().Pods().Lister()
 	plugin := &TerminusSchedulerPlugin{
@@ -57,9 +56,9 @@ func New(ctx context.Context, obj runtime.Object, h schdulerFramework.Handle) (s
 	nodeInformer := h.SharedInformerFactory().Core().V1().Nodes().Informer()
 
 	nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    plugin.handleNodeUpdate,                                              // 新增节点
-		UpdateFunc: func(oldObj, newObj interface{}) { plugin.handleNodeUpdate(newObj) }, // 更新节点
-		DeleteFunc: plugin.handleNodeDelete,                                              // 删除节点
+		AddFunc:    plugin.handleNodeUpdate,
+		UpdateFunc: func(oldObj, newObj interface{}) { plugin.handleNodeUpdate(newObj) },
+		DeleteFunc: plugin.handleNodeDelete,
 	})
 
 	return plugin, nil

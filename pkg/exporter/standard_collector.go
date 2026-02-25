@@ -5,7 +5,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/terminus-io/Terminus/pkg/metadata"
-	"github.com/terminus-io/Terminus/pkg/quota/xfs"
+	terminus_quota "github.com/terminus-io/quota"
 	"k8s.io/klog/v2"
 )
 
@@ -32,62 +32,50 @@ var (
 		"Inode hard limit count per project ID",
 		[]string{"namespace", "pod", "container", "mount_point", "project_id"}, nil,
 	)
+
+	maxID = uint32(999999999)
 )
 
-type XFSCollector struct {
+type StandardCollector struct {
 	mountPoint string
-	exec       *xfs.XFSCLI
 	store      *metadata.AsyncStore
 }
 
-func NewXFSCollector(mountPoint string, store *metadata.AsyncStore) *XFSCollector {
-	return &XFSCollector{
+func NewStandardCollector(mountPoint string, store *metadata.AsyncStore) *StandardCollector {
+	return &StandardCollector{
 		mountPoint: mountPoint,
-		exec:       xfs.NewXFSCLI(),
 		store:      store,
 	}
 }
 
-func (c *XFSCollector) Describe(ch chan<- *prometheus.Desc) {
+func (c *StandardCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- descBytesUsed
 	ch <- descBytesLimit
 	ch <- descInodesUsed
 	ch <- descInodesLimit
 }
 
-func (c *XFSCollector) Collect(ch chan<- prometheus.Metric) {
-	blockReports, err := c.exec.FetchAllReports(c.mountPoint, "b")
-	if err != nil {
-		klog.ErrorS(err, "Failed to collect block metrics")
-	} else {
-		for id, r := range blockReports {
-			containerInfo, ok := c.store.Get(id)
-			if !ok {
-				continue
-			}
-			idStr := fmt.Sprintf("%d", id)
-			ch <- prometheus.MustNewConstMetric(descBytesUsed, prometheus.GaugeValue, float64(r.Used),
-				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
-			ch <- prometheus.MustNewConstMetric(descBytesLimit, prometheus.GaugeValue, float64(r.Limit),
-				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
-		}
-	}
+func (c *StandardCollector) Collect(ch chan<- prometheus.Metric) {
 
-	inodeReports, err := c.exec.FetchAllReports(c.mountPoint, "i")
+	quotaInfos, err := terminus_quota.ListQuotas(c.mountPoint, terminus_quota.ProjQuota, maxID)
 	if err != nil {
-		klog.ErrorS(err, "Failed to collect inode metrics")
+		klog.ErrorS(err, "Failed to list project quotas")
 	} else {
-		for id, r := range inodeReports {
-			containerInfo, ok := c.store.Get(id)
+		for _, r := range quotaInfos {
+			containerInfo, ok := c.store.Get(r.ID)
 			if !ok {
-				klog.Warning(id, "project ID is not found")
 				continue
 			}
-			idStr := fmt.Sprintf("%d", id)
-			ch <- prometheus.MustNewConstMetric(descInodesUsed, prometheus.GaugeValue, float64(r.Used),
+			idStr := fmt.Sprintf("%d", r.ID)
+			ch <- prometheus.MustNewConstMetric(descBytesUsed, prometheus.GaugeValue, float64(r.CurrentBlocks),
 				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
-			ch <- prometheus.MustNewConstMetric(descInodesLimit, prometheus.GaugeValue, float64(r.Limit),
+			ch <- prometheus.MustNewConstMetric(descBytesLimit, prometheus.GaugeValue, float64(r.BlockHardLimit),
+				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
+			ch <- prometheus.MustNewConstMetric(descInodesUsed, prometheus.GaugeValue, float64(r.CurrentInodes),
+				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
+			ch <- prometheus.MustNewConstMetric(descInodesLimit, prometheus.GaugeValue, float64(r.BlockHardLimit),
 				containerInfo.Namespace, containerInfo.PodName, containerInfo.ContainerName, c.mountPoint, idStr)
 		}
+
 	}
 }

@@ -37,6 +37,15 @@ build: ## 编译当前平台的二进制文件
 
 .PHONY: build-scheduler
 build-scheduler:
+	@echo "🚀 Building ${SCHEDULER_BIN_NAME}..."
+	@mkdir -p ${BIN_DIR}
+	go build ${LDFLAGS} -o ${BIN_DIR}/${SCHEDULER_BIN_NAME} ${SCHEDULER_PATH}
+	@echo "✅ Build success: ${BIN_DIR}/${SCHEDULER_BIN_NAME}"
+
+
+
+.PHONY:  build-linux-scheduler
+build-linux-scheduler:
 	@echo "🐧 Building Linux amd64  scheduler static binary..."
 	@mkdir -p ${BIN_DIR}
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${SCHEDULER_BIN_NAME}-linux ${SCHEDULER_PATH}
@@ -47,7 +56,7 @@ build-scheduler:
 build-linux:
 	@echo "🐧 Building Linux amd64  static binary..."
 	@mkdir -p ${BIN_DIR}
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${BINARY_NAME}-linux ${CMD_PATH}
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${BINARY_NAME}-linux ${CMD_PATH}
 	@echo "✅ Linux binary ready: ${BIN_DIR}/${BINARY_NAME}-linux"
 
 .PHONY: run

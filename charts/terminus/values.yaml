@@ -21,6 +21,7 @@ scheduler:
 enforcer:
   logLevel: "4"
   priorityClassName: system-node-critical
+  containerdBasePath: /var/lib/containerd
 
 service:
   type: ClusterIP
