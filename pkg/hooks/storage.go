@@ -15,8 +15,7 @@ import (
 	"github.com/containerd/nri/pkg/api"
 	"github.com/terminus-io/Terminus/pkg/metadata"
 	"github.com/terminus-io/Terminus/pkg/nri"
-	"github.com/terminus-io/Terminus/pkg/quota"
-	"github.com/terminus-io/Terminus/pkg/utils"
+	terminus_quota "github.com/terminus-io/quota"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -24,28 +23,28 @@ import (
 )
 
 const (
-	DiskAnnotation         = "storage.terminus.io/size"
-	ContainerdBasePath     = "/run/containerd/io.containerd.runtime.v2.task/k8s.io/"
-	ContainerdRootPath     = "/var/lib/containerd"
-	SystemMountInfoFile    = "/proc/1/mountinfo"
-	ProjectIDAnnotation    = "storage.terminus.io/project-id"
-	quotaEnableLabel       = "storage.terminus.io/quota"
-	defaultDiskSize        = "2Gi"
-	defaultSideCarDiskSize = "500Mi"
+	DiskAnnotation      = "storage.terminus.io/size"
+	ContainerdBasePath  = "/run/containerd/io.containerd.runtime.v2.task/k8s.io/"
+	SystemMountInfoFile = "/proc/1/mountinfo"
+	ProjectIDAnnotation = "storage.terminus.io/project-id"
+	quotaEnableLabel    = "storage.terminus.io/quota"
+	KB                  = 1024
+	MB                  = 1024 * KB
 )
 
 // StorageHook 负责处理磁盘限额
 type StorageHook struct {
-	qm      quota.QuotaManager
-	store   *metadata.AsyncStore
-	kClient kubernetes.Interface
+	containerdRootPath string
+	store              *metadata.AsyncStore
+	kClient            kubernetes.Interface
 }
 
-func NewStorageHook(qm quota.QuotaManager, store *metadata.AsyncStore, kClient kubernetes.Interface) nri.Hook {
+// qm quota.QuotaManager,
+func NewStorageHook(store *metadata.AsyncStore, kClient kubernetes.Interface, containerdRootPath string) nri.Hook {
 	return &StorageHook{
-		qm:      qm,
-		store:   store,
-		kClient: kClient,
+		containerdRootPath: containerdRootPath,
+		store:              store,
+		kClient:            kClient,
 	}
 }
 
@@ -62,11 +61,7 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 	if !ok {
 		limitStr, ok = pod.Annotations[DiskAnnotation]
 		if !ok {
-			if utils.IsSidecar(container.Name) {
-				limitStr = defaultSideCarDiskSize
-			} else {
-				limitStr = defaultDiskSize
-			}
+			return nil
 		}
 	}
 
@@ -85,7 +80,7 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
 
-	klog.V(2).Infof("Applying quota %d MB to container %s (ID: %s) at %s", limitBytes, container.Name, container.Id, rootfsPath)
+	klog.V(2).Infof("Applying quota %d MB to container %s (ID: %s) at %s", limitBytes/MB, container.Name, container.Id, rootfsPath)
 
 	runPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
 	//Obtain the snapshot ID of overlays as the ProjectID of xfs_quota
@@ -99,16 +94,17 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 
 	klog.V(2).Infof("Target XFS Quota Path: %s, Quota ProjectID: %v", rootfsPath, snapshotID)
 
-	if err := h.qm.SetProjectID(rootfsPath, uint32(snapshotID)); err != nil {
+	if err := terminus_quota.SetProjectID(rootfsPath, int(snapshotID)); err != nil {
 		klog.Errorf("Failed to set fs project id: %v ", err)
 	}
 
 	workPath := strings.TrimSuffix(rootfsPath, "/fs") + "/work"
-	if err := h.qm.SetProjectID(workPath, uint32(snapshotID)); err != nil {
-		klog.Errorf("Failed to set work project id: %v  111", err)
+	if err := terminus_quota.SetProjectID(workPath, int(snapshotID)); err != nil {
+		klog.Errorf("Failed to set work project id: %v ", err)
 	}
 
-	if err := h.qm.SetQuota(uint32(snapshotID), limitBytes); err != nil {
+	if err := terminus_quota.SetQuota(h.containerdRootPath, uint32(snapshotID),
+		terminus_quota.ProjQuota, limitBytes/KB, 0, 0, 0); err != nil {
 		klog.Errorf("Failed to apply quota: %v", err)
 	}
 
@@ -128,9 +124,13 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 
 func (h *StorageHook) Stop(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
 
-	_, ok := pod.Annotations[DiskAnnotation]
+	prefix := DiskAnnotation + "." + container.Name
+	_, ok := pod.Annotations[prefix]
 	if !ok {
-		return nil
+		_, ok = pod.Annotations[DiskAnnotation]
+		if !ok {
+			return nil
+		}
 	}
 
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
@@ -140,9 +140,14 @@ func (h *StorageHook) Stop(ctx context.Context, pod *api.PodSandbox, container *
 		klog.Warningf("found Project ID for %s, failed", foundPath)
 		return err
 	}
-	if err := h.qm.RemoveQuota(ContainerdRootPath, uint32(snapshotID)); err != nil {
+
+	if err := terminus_quota.RemoveQuota(h.containerdRootPath, uint32(snapshotID), terminus_quota.ProjQuota); err != nil {
 		klog.Warningf("remove Project ID quota for %s, failed", foundPath)
 		return err
+	}
+
+	if err := terminus_quota.ClearProjectID(h.containerdRootPath); err != nil {
+		klog.Warningf("clear Project ID for %s, failed", foundPath)
 	}
 
 	h.store.TriggerDelete(uint32(snapshotID))

@@ -41,6 +41,8 @@ spec:
         args:
           - "-v=4"
         env:
+        - name: CONTAINERD_PATH
+          value: "/var/lib/containerd"
         - name: NODE_NAME
           valueFrom:
             fieldRef:

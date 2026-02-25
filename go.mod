@@ -1,11 +1,12 @@
 module github.com/terminus-io/Terminus
 
-go 1.24.0
+go 1.25.5
 
 require (
 	github.com/containerd/nri v0.11.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/spf13/cobra v1.8.1
+	github.com/terminus-io/quota v1.0.6
 	golang.org/x/sync v0.12.0
 	k8s.io/api v0.32.9
 	k8s.io/apimachinery v0.32.9

@@ -4,26 +4,19 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/terminus-io/Terminus/pkg/exporter"
-	ext4_exporter "github.com/terminus-io/Terminus/pkg/exporter/ext4"
 	"github.com/terminus-io/Terminus/pkg/hooks"
 	"github.com/terminus-io/Terminus/pkg/k8s"
 	"github.com/terminus-io/Terminus/pkg/metadata"
 	"github.com/terminus-io/Terminus/pkg/nri"
-	"github.com/terminus-io/Terminus/pkg/quota"
-	"github.com/terminus-io/Terminus/pkg/quota/ext4"
-	"github.com/terminus-io/Terminus/pkg/quota/xfs"
 	"github.com/terminus-io/Terminus/pkg/reporter"
-	"github.com/terminus-io/Terminus/pkg/utils"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/klog/v2"
 )
@@ -34,7 +27,6 @@ const (
 	pluginIdx        = "06"
 	EXT4_SUPER_MAGIC = 0xEF53
 	XFS_SUPER_MAGIC  = 0x58465342
-	containerdPath   = "/var/lib/containerd"
 )
 
 // rootCmd 定义根命令
@@ -44,13 +36,18 @@ var rootCmd = &cobra.Command{
 	Long:  `Terminus Enforcer listens to NRI events and applies Project Quota limits.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		for !checkContainerdRootPathQuotaEnabled() {
-			klog.Warning("Waiting for /var/lib/containerd to have prjquota enabled...")
-			time.Sleep(5 * time.Second)
-		}
-
 		if os.Getenv("NODE_NAME") == "" {
 			return errors.New("NODE_NAME var is empty, please export NODE_NAME before")
+		}
+
+		containerdPath := os.Getenv("CONTAINERD_PATH")
+		if containerdPath == "" {
+			containerdPath = "/var/lib/containerd"
+		}
+
+		for !checkContainerdRootPathQuotaEnabled(containerdPath) {
+			klog.Warning("Waiting for /var/lib/containerd to have prjquota enabled...")
+			time.Sleep(5 * time.Second)
 		}
 
 		kClient, err := k8s.GenrateK8sClient()
@@ -59,16 +56,12 @@ var rootCmd = &cobra.Command{
 		}
 
 		store := metadata.NewAsyncStore(1000, kClient)
-		qm, collector, err := genrateQuotaManager(containerdPath, store)
-		if err != nil {
-			return err
-		}
 
 		go func() {
 			store.TriggerRestore()
 		}()
 
-		storageHook := hooks.NewStorageHook(qm, store, kClient)
+		storageHook := hooks.NewStorageHook(store, kClient, containerdPath)
 
 		enforcer, err := nri.NewEnforcer(
 			nri.WithSocketPath(socketPath),
@@ -100,6 +93,7 @@ var rootCmd = &cobra.Command{
 		})
 
 		g.Go(func() error {
+			collector := exporter.NewStandardCollector(containerdPath, store)
 			return exporter.StartMetricsServer(ctx, collector, store, ":9201")
 		})
 
@@ -129,28 +123,7 @@ func init() {
 	_ = flag.Set("logtostderr", "true")
 }
 
-func genrateQuotaManager(path string, store *metadata.AsyncStore) (quota.QuotaManager, prometheus.Collector, error) {
-	var stat syscall.Statfs_t
-	err := syscall.Statfs(path, &stat)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return nil, nil, err
-	}
-	fsType := int64(stat.Type)
-	switch fsType {
-	case EXT4_SUPER_MAGIC:
-		klog.Info("this node filesystem is ext4")
-		mountPoint, _ := utils.GetMountPoint(containerdPath)
-		return ext4.NewExt4CLI(), ext4_exporter.NewExt4Collector(mountPoint, store), nil
-	case XFS_SUPER_MAGIC:
-		klog.Info("this node filesystem is xfs")
-		return xfs.NewXFSCLI(), exporter.NewXFSCollector(containerdPath, store), nil
-	default:
-		return nil, nil, fmt.Errorf("Unknown or other FS. Magic Number: %x\nSupport fileSystem: xfs / ext4", fsType)
-	}
-}
-
-func checkContainerdRootPathQuotaEnabled() bool {
+func checkContainerdRootPathQuotaEnabled(containerdPath string) bool {
 	data, _ := os.ReadFile("/proc/mounts")
 	for _, line := range strings.Split(string(data), "\n") {
 		fields := strings.Fields(line)
