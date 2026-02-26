@@ -1,10 +1,6 @@
 package utils
 
 import (
-	"bytes"
-	"fmt"
-	"os/exec"
-	"strings"
 	"syscall"
 )
 
@@ -36,32 +32,4 @@ func GetDiskUsage(path string) (DiskStatus, error) {
 	ds.BlockSize = blockSize
 
 	return ds, nil
-}
-
-func GetMountPoint(path string) (string, error) {
-	cmd := exec.Command("df", path)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return "", err
-	}
-
-	//解析输出
-	// /dev/mapper/xxx      79738176  11561608  68160184  15% /dev/termination-log
-	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(lines) < 2 {
-		return "", fmt.Errorf("unexpected df output format")
-	}
-
-	// 获取最后一行
-	lastLine := lines[len(lines)-2]
-
-	//获取第一列（即设备路径）
-	fields := strings.Fields(lastLine)
-	if len(fields) > 0 {
-		return fields[0], nil
-	}
-
-	return "", fmt.Errorf("could not parse device path")
 }

@@ -46,7 +46,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		for !checkContainerdRootPathQuotaEnabled(containerdPath) {
-			klog.Warning("Waiting for /var/lib/containerd to have prjquota enabled...")
+			klog.Warningf("Waiting for %s to have prjquota enabled...\n", containerdPath)
 			time.Sleep(5 * time.Second)
 		}
 

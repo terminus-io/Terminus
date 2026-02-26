@@ -171,14 +171,8 @@ github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/terminus-io/quota v1.0.2 h1:OxXMLHJXpAjErBsR9aSgaGZjv3GJGDb8l+MuPlZf/N8=
-github.com/terminus-io/quota v1.0.2/go.mod h1:fsaly0g43P57JQjFQEqz6mXP4FSjwZ1mqFm4bZtyyEM=
-github.com/terminus-io/quota v1.0.4 h1:rgYB3C0QB7rVqJYem0LHimrYqHUCh4i4kMgSvbJCPQs=
-github.com/terminus-io/quota v1.0.4/go.mod h1:fsaly0g43P57JQjFQEqz6mXP4FSjwZ1mqFm4bZtyyEM=
-github.com/terminus-io/quota v1.0.5 h1:EUuqvlkg7FghDZzwiZHOmFOsR+MTRogvgbjogkznwmA=
-github.com/terminus-io/quota v1.0.5/go.mod h1:fsaly0g43P57JQjFQEqz6mXP4FSjwZ1mqFm4bZtyyEM=
-github.com/terminus-io/quota v1.0.6 h1:5N7eY7AWQAUwYsS2cZVU0HCn7l+mvEmdaH/dPw/VEw0=
-github.com/terminus-io/quota v1.0.6/go.mod h1:fsaly0g43P57JQjFQEqz6mXP4FSjwZ1mqFm4bZtyyEM=
+github.com/terminus-io/quota v1.0.7 h1:atyItqtqAkkOjgKGC2wR9+v4eT0vJBZDvhdllDLnmEg=
+github.com/terminus-io/quota v1.0.7/go.mod h1:fsaly0g43P57JQjFQEqz6mXP4FSjwZ1mqFm4bZtyyEM=
 github.com/tetratelabs/wazero v1.10.1 h1:2DugeJf6VVk58KTPszlNfeeN8AhhpwcZqkJj2wwFuH8=
 github.com/tetratelabs/wazero v1.10.1/go.mod h1:DRm5twOQ5Gr1AoEdSi0CLjDQF1J9ZAuyqFIjl1KKfQU=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 h1:6fotK7otjonDflCTK0BCfls4SPy3NcCVb5dqqmbRknE=

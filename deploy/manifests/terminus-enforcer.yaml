@@ -48,8 +48,6 @@ spec:
             fieldRef:
               fieldPath: spec.nodeName
         volumeMounts:
-        - name: host-root
-          mountPath: /dev
         - name: containerd-root
           mountPath: /var/lib/containerd
         - mountPath: /var/run/nri/nri.sock
@@ -64,7 +62,3 @@ spec:
           path: /var/run/nri/nri.sock
           type: Socket
         name: socket
-      - name: host-root
-        hostPath:
-          path: /dev
-          type: Directory
