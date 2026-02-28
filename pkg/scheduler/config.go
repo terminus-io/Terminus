@@ -10,7 +10,7 @@ type TerminusArgs struct {
 	Namespace             string  `json:"namespace"`
 	OversubscriptionRatio float64 `json:"oversubscriptionRatio"`
 	UseAI                 bool    `json:"useAI"`
-	AiWeightRatio         int     `json:aiWeightRatio`
+	AiWeightRatio         int     `json:"aiWeightRatio"`
 	ModelType             string  `json:"modelType"`
 	ModelName             string  `json:"modelName"`
 	OpenAIAPIKey          string  `json:"openAIAPIKey"`
