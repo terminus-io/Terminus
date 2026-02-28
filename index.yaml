@@ -3,6 +3,16 @@ entries:
   terminus:
   - apiVersion: v2
     appVersion: latest
+    created: "2026-02-28T08:47:20.187226975Z"
+    description: A Helm chart for Terminus Enforcer and Scheduler
+    digest: fe0b849639719829d179415d1124d8df93deec1665484a316468951adcbe2f57
+    name: terminus
+    type: application
+    urls:
+    - https://github.com/terminus-io/Terminus/releases/download/terminus-v0.2.0/terminus-v0.2.0.tgz
+    version: v0.2.0
+  - apiVersion: v2
+    appVersion: latest
     created: "2026-02-09T10:48:53.625263875Z"
     description: A Helm chart for Terminus Enforcer and Scheduler
     digest: ea8e98ff5f22b98c78cefadddee56bfaab017e7036752bca6af330e896965941
@@ -21,4 +31,4 @@ entries:
     urls:
     - https://github.com/terminus-io/Terminus/releases/download/terminus-v0.1.0/terminus-v0.1.0.tgz
     version: v0.1.0
-generated: "2026-02-09T10:48:53.625278692Z"
+generated: "2026-02-28T08:47:20.18724167Z"
