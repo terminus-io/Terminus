@@ -1,11 +1,11 @@
 images:
   enforcer:
     repository: ghcr.io/terminus/enforcer
-    tag: latest
+    tag: v0.2.0
     pullPolicy: IfNotPresent
   scheduler:
     repository: ghcr.io/terminus/scheduler
-    tag: latest
+    tag: v0.2.0
     pullPolicy: IfNotPresent
 
 serviceAccount:

@@ -26,7 +26,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: terminus-enforcer
-        image: ghcr.m.daocloud.io/terminus/enforcer:latest
+        image: ghcr.m.daocloud.io/terminus/enforcer:v0.2.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9201

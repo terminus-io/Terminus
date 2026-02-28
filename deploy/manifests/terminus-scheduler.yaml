@@ -24,7 +24,7 @@ spec:
       serviceAccountName: terminus-admin
       containers:
       - name: terminus-scheduler
-        image: ghcr.m.daocloud.io/terminus/scheduler:latest
+        image: ghcr.m.daocloud.io/terminus/scheduler:v0.2.0
         imagePullPolicy: IfNotPresent
         command:
         - /usr/bin/terminus-scheduler
