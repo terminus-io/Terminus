@@ -13,10 +13,17 @@ serviceAccount:
   name: "terminus-admin"
 
 scheduler:
+  enable: true
   replicas: 3
   logLevel: "4"
   oversubscriptionRatio: 1.5
   leaderElect: true
+  useAI: false
+  aiWeightRatio: 50
+  modelType: "OPENAI"
+  modelName: "gpt-3.5-turbo"
+  openAIAPIKey: ""
+  openAIAPIURL: "https://api.openai.com/v1"
 
 enforcer:
   logLevel: "4"

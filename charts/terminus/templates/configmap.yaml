@@ -25,4 +25,11 @@ data:
         pluginConfig:
           - name: terminus-scheduler
             args:
+              namespace: {{ .Release.Namespace }}
               oversubscriptionRatio: {{ .Values.scheduler.oversubscriptionRatio }}
+              useAI: {{ .Values.scheduler.useAI }}
+              aiWeightRatio: {{ .Values.scheduler.aiWeightRatio }}
+              modelType: {{ .Values.scheduler.modelType }}
+              modelName: {{ .Values.scheduler.modelName }}
+              openAIAPIKey: {{ .Values.scheduler.openAIAPIKey }}
+              openAIAPIURL: {{ .Values.scheduler.openAIAPIURL }}

@@ -1,17 +1,13 @@
 package utils
 
 import (
-	"strings"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
-	KeyGlobalDefault   = "storage.terminus.io/size"
-	PrefixSpecific     = "storage.terminus.io/size."
-	DefaultMainSize    = "2Gi"
-	DefaultSidecarSize = "500Mi"
+	KeyGlobalDefault = "storage.terminus.io/size"
+	PrefixSpecific   = "storage.terminus.io/size."
 )
 
 func GetPodTotalStorage(pod *v1.Pod) int64 {
@@ -37,11 +33,7 @@ func GetContainerQuota(annotations map[string]string, containerName string) int6
 		return parseSize(val)
 	}
 
-	if IsSidecar(containerName) {
-		return parseSize(DefaultSidecarSize)
-	}
-
-	return parseSize(DefaultMainSize)
+	return 0
 }
 
 func parseSize(q string) int64 {
@@ -50,12 +42,4 @@ func parseSize(q string) int64 {
 		return 0
 	}
 	return qty.Value()
-}
-
-func IsSidecar(name string) bool {
-	name = strings.ToLower(name)
-	return strings.Contains(name, "sidecar") ||
-		strings.Contains(name, "agent") ||
-		strings.Contains(name, "proxy") ||
-		strings.Contains(name, "filebeat")
 }
