@@ -18,3 +18,9 @@ profiles:
       - name: terminus-scheduler
         args:
           oversubscriptionRatio: 1.5
+          useAI: false
+          aiWeightRatio: 50
+          modelType: "OPENAI"
+          modelName: "gpt-3.5-turbo"
+          openAIAPIKey: ""
+          openAIAPIURL: "https://api.openai.com/v1"

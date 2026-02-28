@@ -18,16 +18,19 @@ import (
 
 const (
 	SchedulerName       = "terminus-scheduler"
-	nodeAnnotationTotal = "storage.terminus.io/physical-total" // NRI 插件上报的 Key
+	nodeAnnotationTotal = "storage.terminus.io/physical-total"
 	nodeAnnotationUsed  = "storage.terminus.io/physical-used"
 	threshold           = 0.95
 )
 
 type TerminusSchedulerPlugin struct {
-	handle     schdulerFramework.Handle
-	statsCache sync.Map
-	podLister  listersv1.PodLister
-	args       *TerminusArgs
+	handle         schdulerFramework.Handle
+	statsCache     sync.Map
+	aiScores       map[string]int64
+	scoreLock      sync.RWMutex
+	podLister      listersv1.PodLister
+	args           *TerminusArgs
+	nexusStartOnce sync.Once
 }
 
 var _ schdulerFramework.FilterPlugin = &TerminusSchedulerPlugin{}
@@ -51,8 +54,18 @@ func New(ctx context.Context, obj runtime.Object, h schdulerFramework.Handle) (s
 	plugin := &TerminusSchedulerPlugin{
 		handle:    h,
 		podLister: podLister,
+		aiScores:  make(map[string]int64),
 		args:      args,
 	}
+
+	if args.UseAI {
+		agent, err := setupNexusAnalyzer(args)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup Nexus Analyzer: %v", err)
+		}
+		go plugin.runNexusAnalyzer(ctx, agent)
+	}
+
 	nodeInformer := h.SharedInformerFactory().Core().V1().Nodes().Informer()
 
 	nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -179,9 +192,19 @@ func (p *TerminusSchedulerPlugin) Score(ctx context.Context, state *schdulerFram
 	physicalScore := int64((float64(free) / float64(capacity)) * float64(schdulerFramework.MaxNodeScore))
 
 	score := min(logicalScore, physicalScore)
-	klog.V(4).Infof("%s pod, node %s score is : %v ", pod.Name, nodeName, score)
 
-	return score, nil
+	p.scoreLock.RLock()
+	aiScore, exists := p.aiScores[nodeName]
+	p.scoreLock.RUnlock()
+
+	if !exists {
+		klog.V(4).Infof("%s pod, node %s score is : %v ", pod.Name, nodeName, score)
+		return score, nil
+	}
+	finalScore := (score * int64(100-p.args.AiWeightRatio) / 100) + (aiScore * int64(p.args.AiWeightRatio) / 100)
+	klog.V(4).Infof("%s pod, node %s score is : %v ", pod.Name, nodeName, finalScore)
+
+	return finalScore, nil
 }
 
 func (p *TerminusSchedulerPlugin) ScoreExtensions() schdulerFramework.ScoreExtensions { return nil }

@@ -38,6 +38,9 @@ In standard Kubernetes, ephemeral storage limits (`requests.ephemeral-storage`) 
 
 * **⚡ Active Protection (Terminus-Exporter)**
   An efficient node agent that monitors Project ID usage and triggers graceful
+
+* **🧠 Nexus AI Scheduling Brain (v0.2 New!)**
+A revolutionary Disk-Aware Scheduler powered by an asynchronous LLM routine. It performs **Dual-Plane Risk Control**, contrasting `Physical Disk Usage` against `Virtual Quota Use`. It proactively suppresses scores for nodes that are "physical safe but virtually bankrupt", effectively defusing time bombs and preventing data bank runs.
 ## 🏗️ Architecture
 
 Terminus consists of three micro-components working in harmony:
@@ -49,6 +52,11 @@ graph TD
     subgraph Control Plane
         API -->|Watch| Scheduler[Kube-Scheduler]
         Scheduler -- Filter/Score --> Plugin[<b>Terminus-Scheduler</b>]
+        
+       
+        API -.->|Watch Nodes & Pods<br/>Informer Cache| Nexus[<b>Nexus AI Goroutine</b>]
+        Nexus -- "Dual-Plane Eval<br/>(Async)" --> LLM((LLM API))
+        LLM -- "Local Score Cache<br/>O(1) Lookup" --> Plugin
     end
 
     subgraph Worker Node
@@ -63,7 +71,9 @@ graph TD
     end
     
     classDef component fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef ai fill:#ffe4e1,stroke:#ff69b4,stroke-width:2px;
     class NRI,Plugin,Agent component;
+    class Nexus ai;
 
 ```
 
@@ -97,12 +107,12 @@ Edit your `/etc/containerd/config.toml` to enable the NRI plugin:
 ##### Helm Chart
 ```bash
 helm repo add terminus https://terminus-io.github.io/Terminus
-helm install terminus terminus/terminus --version 0.1.1 -n terminus --create-namespace
+helm install terminus terminus/terminus --set scheduler.useAI=true,scheduler.aiWeightRatio=50,scheduler.modelType=OPENAI,scheduler.modelName=gpt-3.5-turbo,scheduler.openAIAPIKey="sk-12345678123123123",scheduler.openAIAPIURL="https://api.openai.com/v1" --version 0.2.0 -n terminus --create-namespace
 ```
 
 ##### Local
 ```bash
-helm install terminus ./charts/terminus -n terminus --create-namespace
+helm install terminus ./charts/terminus  --set scheduler.useAI=true,scheduler.aiWeightRatio=50,scheduler.modelType=OPENAI,scheduler.modelName=gpt-3.5-turbo,scheduler.openAIAPIKey="sk-12345678123123123",scheduler.openAIAPIURL="https://api.openai.com/v1" -n terminus --create-namespace
 ```
 
 ### 3. Manual Installation
@@ -175,6 +185,12 @@ data:
     pluginConfig:
       - name: terminus-scheduler
         args:
+          useAI: true
+          aiWeightRatio: 30 (default 30)
+          modelType: OPENAI
+          modelName: gpt-5
+          openAIAPIKey: ""
+          openAIAPIURL: https://api.openai.com/v1
           oversubscriptionRatio: 1.5
 
 ```
@@ -184,9 +200,13 @@ data:
 
 ## 🗺️ Roadmap
 
-* [x] **v0.1 (MVP)**: NRI plugin implementation for XFS Project Quota.
-* [x] **v0.2**: Prometheus Exporter & Grafana Dashboard integration.
-* [x] **v1.0**: Scheduler Plugin with "Real Usage" awareness.
+* [x] **v0.1 (MVP)**: 
+  - NRI plugin implementation for XFS Project Quota.
+  - Prometheus Exporter & Grafana Dashboard integration.
+  - Scheduler Plugin with "Real Usage" awareness.
+* [x] **v0.2 (AI Scheduling Featrue)**: 
+  - Enforcer Native Kernel Syscall via terminus-io/quota for zero-overhead enforcement.
+  - Nexus AI Scheduling Brain (Dual-Plane Risk Control).
 
 ## 🤝 Contributing
 
