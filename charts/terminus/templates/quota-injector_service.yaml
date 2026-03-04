@@ -1,0 +1,14 @@
+{{- if .Values.replaceEphemeralStorage.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: terminus-quota-service
+spec:
+  selector:
+    app: terminus-quota-injector
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 8443
+  type: ClusterIP
+{{- end -}}

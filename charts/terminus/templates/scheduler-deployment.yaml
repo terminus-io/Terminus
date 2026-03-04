@@ -46,3 +46,5 @@ spec:
             path: terminus-scheduler-config.yaml
           name: terminus-scheduler-config
         name: terminus-scheduler-config
+
+{{- end -}}
