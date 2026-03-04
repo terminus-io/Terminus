@@ -1,0 +1,25 @@
+{{- if .Values.replaceEphemeralStorage.enabled -}}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: terminus-quota-injector-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/terminus-tls
+webhooks:
+  - name: quota-injector.terminus.io
+    failurePolicy: Ignore
+    timeoutSeconds: 5
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    clientConfig:
+      service:
+        name: terminus-quota-service
+        namespace: {{ .Release.Namespace }}
+        path: "/mutate"
+    rules:
+    - operations: ["CREATE"]
+      apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["pods"]
+      scope: Namespaced
+{{- end -}}

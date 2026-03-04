@@ -1,0 +1,69 @@
+{{- if .Values.replaceEphemeralStorage.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: terminus-quota-injector
+  name: terminus-quota-injector
+spec:
+  replicas: {{ .Values.replaceEphemeralStorage.replicas }}
+  selector:
+    matchLabels:
+      app: terminus-quota-injector
+  template:
+    metadata:
+      labels:
+        app: terminus-quota-injector
+    spec:
+      containers:
+      - args:
+        - --v=2
+        command:
+        - /usr/bin/terminus-quota-injector
+        image: {{ .Values.images.quotaInjector.repository }}:{{ .Values.images.quotaInjector.tag }}
+        imagePullPolicy: {{ .Values.images.quotaInjector.pullPolicy }}
+        livenessProbe:
+          exec:
+            command:
+            - ls
+            - /etc/webhook/certs/tls.crt
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: quota-injector
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - ls
+            - /etc/webhook/certs/tls.crt
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/webhook/certs
+          name: webhook-certs
+          readOnly: true
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      volumes:
+      - name: webhook-certs
+        secret:
+          defaultMode: 420
+          secretName: terminus-tls
+{{- end -}}

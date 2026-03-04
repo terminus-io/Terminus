@@ -5,19 +5,16 @@
 # --- 变量定义 ---
 BINARY_NAME=terminus-enforcer
 SCHEDULER_BIN_NAME=terminus-scheduler
+INJECTOR_BIN_NAME=terminus-quota-injector
 CMD_PATH=./cmd/terminus-enforcer
 SCHEDULER_PATH=./cmd/terminus-scheduler
+INJECTOR_PATH=./cmd/terminus-quota-injector
 BIN_DIR=./bin
 DOCKER_IMAGE=terminus-enforcer
-VERSION?=v0.1.0
+VERSION?=v0.2.0
 
-# 获取 Git Commit Hash 和 构建时间 (用于注入版本信息)
 GIT_COMMIT=$(shell git rev-parse --short HEAD || echo "unknown")
 BUILD_TIME=$(shell date "+%F %T")
-
-# 编译参数：
-# -s -w: 去掉调试符号，减小二进制体积
-# -X: 注入变量 (如果你在代码里定义了 Version 变量)
 LDFLAGS=-ldflags "-s -w -X 'main.Version=${VERSION}' -X 'main.GitCommit=${GIT_COMMIT}' -X 'main.BuildTime=${BUILD_TIME}'"
 
 # --- 默认任务 ---
@@ -32,7 +29,7 @@ all: build
 build: ## 编译当前平台的二进制文件
 	@echo "🚀 Building ${BINARY_NAME}..."
 	@mkdir -p ${BIN_DIR}
-	go build ${LDFLAGS} -o ${BIN_DIR}/${BINARY_NAME} ${CMD_PATH}
+	go build -ldflags '-s -w' -o ${BIN_DIR}/${BINARY_NAME} ${CMD_PATH}
 	@echo "✅ Build success: ${BIN_DIR}/${BINARY_NAME}"
 
 .PHONY: build-scheduler
@@ -42,25 +39,35 @@ build-scheduler:
 	go build ${LDFLAGS} -o ${BIN_DIR}/${SCHEDULER_BIN_NAME} ${SCHEDULER_PATH}
 	@echo "✅ Build success: ${BIN_DIR}/${SCHEDULER_BIN_NAME}"
 
+.PHONY: build-quota-injector
+build-quota-injector:
+	go build -o ${BIN_DIR}/${INJECTOR_BIN_NAME}  ${INJECTOR_PATH}
+
 
 
 .PHONY:  build-linux-scheduler
 build-linux-scheduler:
 	@echo "🐧 Building Linux amd64  scheduler static binary..."
 	@mkdir -p ${BIN_DIR}
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${SCHEDULER_BIN_NAME}-linux ${SCHEDULER_PATH}
+	CGO_ENABLED=0 GOOS=linux  go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${SCHEDULER_BIN_NAME}-linux ${SCHEDULER_PATH}
 	@echo "✅ Linux binary ready: ${BIN_DIR}/${SCHEDULER_BIN_NAME}-linux"
 
+
+.PHONY: build-linux-quota
+build-linux-quota:
+	@mkdir -p ${BIN_DIR}
+	CGO_ENABLED=0 GOOS=linux  go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${INJECTOR_BIN_NAME}-linux ${INJECTOR_PATH}
+	@echo "✅ Linux binary ready: ${BIN_DIR}/${INJECTOR_BIN_NAME}-linux"
 
 .PHONY: build-linux
 build-linux:
 	@echo "🐧 Building Linux amd64  static binary..."
 	@mkdir -p ${BIN_DIR}
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${BINARY_NAME}-linux ${CMD_PATH}
+	CGO_ENABLED=1 GOOS=linux go build -a -ldflags '-s -w -extldflags "-static"' -o ${BIN_DIR}/${BINARY_NAME}-linux ${CMD_PATH}
 	@echo "✅ Linux binary ready: ${BIN_DIR}/${BINARY_NAME}-linux"
 
 .PHONY: run
-run: build ## 编译并在本机运行 (需要 sudo 权限连 socket)
+run: build
 	@echo "🏃 Running ${BINARY_NAME}..."
 	sudo ${BIN_DIR}/${BINARY_NAME} --v=2
 

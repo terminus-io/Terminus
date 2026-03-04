@@ -1,3 +1,4 @@
+{{- if .Values.scheduler.enable -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -33,3 +34,5 @@ data:
               modelName: {{ .Values.scheduler.modelName }}
               openAIAPIKey: {{ .Values.scheduler.openAIAPIKey }}
               openAIAPIURL: {{ .Values.scheduler.openAIAPIURL }}
+
+{{- end -}}

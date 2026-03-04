@@ -73,7 +73,7 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		rpt := reporter.NewReporter(store, kClient, 30*time.Second)
+		rpt := reporter.NewReporter(store, kClient, containerdPath, 30*time.Second)
 
 		ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 		defer cancel()

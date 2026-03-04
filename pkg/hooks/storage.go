@@ -94,12 +94,12 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 
 	klog.V(2).Infof("Target XFS Quota Path: %s, Quota ProjectID: %v", rootfsPath, snapshotID)
 
-	if err := terminus_quota.SetProjectID(rootfsPath, int(snapshotID)); err != nil {
+	if err := terminus_quota.SetProjectIDRecursive(rootfsPath, int(snapshotID)); err != nil {
 		klog.Errorf("Failed to set fs project id: %v ", err)
 	}
 
 	workPath := strings.TrimSuffix(rootfsPath, "/fs") + "/work"
-	if err := terminus_quota.SetProjectID(workPath, int(snapshotID)); err != nil {
+	if err := terminus_quota.SetProjectIDRecursive(workPath, int(snapshotID)); err != nil {
 		klog.Errorf("Failed to set work project id: %v ", err)
 	}
 

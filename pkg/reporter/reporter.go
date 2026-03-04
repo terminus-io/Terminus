@@ -11,16 +11,18 @@ import (
 )
 
 type reporter struct {
-	store    *metadata.AsyncStore
-	kClient  kubernetes.Interface
-	Interval time.Duration
+	store          *metadata.AsyncStore
+	kClient        kubernetes.Interface
+	containerdPath string
+	Interval       time.Duration
 }
 
-func NewReporter(store *metadata.AsyncStore, kClient kubernetes.Interface, interval time.Duration) *reporter {
+func NewReporter(store *metadata.AsyncStore, kClient kubernetes.Interface, containerdPath string, interval time.Duration) *reporter {
 	return &reporter{
-		store:    store,
-		kClient:  kClient,
-		Interval: interval,
+		store:          store,
+		kClient:        kClient,
+		containerdPath: containerdPath,
+		Interval:       interval,
 	}
 }
 
@@ -31,7 +33,7 @@ func (r *reporter) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	reportFunc := func() {
-		diskTotal, err := utils.GetDiskUsage("/var/lib/containerd")
+		diskTotal, err := utils.GetDiskUsage(r.containerdPath)
 		if err != nil {
 			klog.Warningf("Failed to get disk usage: %v", err)
 			return

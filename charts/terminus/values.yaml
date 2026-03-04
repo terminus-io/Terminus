@@ -1,11 +1,15 @@
 images:
   enforcer:
     repository: ghcr.io/terminus/enforcer
-    tag: v0.2.0
+    tag: v0.3.0
     pullPolicy: IfNotPresent
   scheduler:
     repository: ghcr.io/terminus/scheduler
-    tag: v0.2.0
+    tag: v0.3.0
+    pullPolicy: IfNotPresent
+  quotaInjector:
+    repository: ghcr.io/terminus/quota-injector
+    tag: v0.3.0
     pullPolicy: IfNotPresent
 
 serviceAccount:
@@ -13,7 +17,7 @@ serviceAccount:
   name: "terminus-admin"
 
 scheduler:
-  enable: true
+  enable: false
   replicas: 3
   logLevel: "4"
   oversubscriptionRatio: 1.5
@@ -29,6 +33,10 @@ enforcer:
   logLevel: "4"
   priorityClassName: system-node-critical
   containerdBasePath: /var/lib/containerd
+
+replaceEphemeralStorage:
+  enabled: false
+  replicas: 3
 
 service:
   type: ClusterIP
