@@ -41,6 +41,9 @@ In standard Kubernetes, ephemeral storage limits (`requests.ephemeral-storage`) 
 
 * **🧠 Nexus AI Scheduling Brain (v0.2 New!)**
 A revolutionary Disk-Aware Scheduler powered by an asynchronous LLM routine. It performs **Dual-Plane Risk Control**, contrasting `Physical Disk Usage` against `Virtual Quota Use`. It proactively suppresses scores for nodes that are "physical safe but virtually bankrupt", effectively defusing time bombs and preventing data bank runs.
+* **🛡️ Native kubernetes resource yaml configure support**
+  Support native Kubernetes YAML parameter configuration for ephemeral-storage and emptydir temporary storage configurations, and enforce hard quotas based on quota
+  
 ## 🏗️ Architecture
 
 Terminus consists of three micro-components working in harmony:
