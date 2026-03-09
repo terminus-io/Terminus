@@ -26,7 +26,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: terminus-enforcer
-        image: ghcr.m.daocloud.io/terminus/enforcer:v0.2.0
+        image: ghcr.m.daocloud.io/terminus/enforcer:v1.0.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9201
@@ -43,6 +43,8 @@ spec:
         env:
         - name: CONTAINERD_PATH
           value: "/var/lib/containerd"
+        - name: KUBELET_PATH
+          value: "/var/lib/kubelet"
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -50,6 +52,8 @@ spec:
         volumeMounts:
         - name: containerd-root
           mountPath: /var/lib/containerd
+        - name: kubelet-root
+          mountPath: /var/lib/kubelet
         - mountPath: /var/run/nri/nri.sock
           name: socket
           readOnly: true
@@ -57,6 +61,10 @@ spec:
       - name: containerd-root
         hostPath:
           path: /var/lib/containerd
+          type: Directory
+      - name: kubelet-root
+        hostPath:
+          path: /var/lib/kubelet
           type: Directory
       - hostPath:
           path: /var/run/nri/nri.sock

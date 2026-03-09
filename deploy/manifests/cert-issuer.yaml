@@ -1,8 +1,8 @@
-{{- if .Values.replaceEphemeralStorage.enabled -}}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: terminus-issuer
+  namespace: terminus
 spec:
   selfSigned: {}
 ---
@@ -10,12 +10,12 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: terminus-tls
+  namespace: terminus
 spec:
   secretName: terminus-tls
   dnsNames:
-  - terminus-quota-service.{{ .Release.Namespace }}.svc
-  - terminus-quota-service.{{ .Release.Namespace }}.svc.cluster.local
+  - terminus-quota-service.terminus.svc
+  - terminus-quota-service.terminus.svc.cluster.local
   issuerRef:
     name: terminus-issuer
     kind: ClusterIssuer
-{{- end -}}

@@ -12,9 +12,12 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func StartMetricsServer(ctx context.Context, collector prometheus.Collector, store *metadata.AsyncStore, metricsAddr string) error {
+func StartMetricsServer(ctx context.Context, store *metadata.AsyncStore, metricsAddr string, collectors ...prometheus.Collector) error {
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(collector)
+
+	for _, collector := range collectors {
+		reg.MustRegister(collector)
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))

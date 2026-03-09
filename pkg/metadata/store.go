@@ -2,12 +2,13 @@ package metadata
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -19,8 +20,10 @@ type EventType int
 const (
 	EventUpdate EventType = iota
 	EventDelete
-	quotaEnableLabel    = "storage.terminus.io/quota"
-	projectIDAnnotation = "storage.terminus.io/project-id"
+	quotaEnableLabel        = "storage.terminus.io/quota"
+	projectIDAnnotation     = "storage.terminus.io/project-id"
+	emptyDirPrjIDAnnotation = "emptydir.terminus.io/project-id"
+	emptyDirQuotaLabel      = "emptydir.terminus.io/quota"
 )
 
 type UpdateEvent struct {
@@ -105,13 +108,24 @@ func (s *AsyncStore) TriggerRestore() {
 
 	pods, err := s.kClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{
 		FieldSelector: "spec.nodeName=" + nodeName,
-		LabelSelector: fmt.Sprintf("%s=enabled", quotaEnableLabel),
 	})
 
 	if err != nil {
 		klog.Errorf("[Restore Metrics] List Pods failed, monitoring metrics of existing pods may be affected: %v\n", err)
 		return
 	}
+
+	var matchedPods []corev1.Pod
+
+	for _, pod := range pods.Items {
+		// 情况 A：如果你要求标签的值必须是 "enabled"（和截图里 %s=enabled 一致）
+		if pod.Labels[quotaEnableLabel] == "enabled" || pod.Labels[emptyDirQuotaLabel] == "enabled" {
+			matchedPods = append(matchedPods, pod)
+			continue
+		}
+	}
+
+	pods.Items = matchedPods
 
 	prefix := projectIDAnnotation + "."
 	for _, pod := range pods.Items {
@@ -133,9 +147,49 @@ func (s *AsyncStore) TriggerRestore() {
 				Namespace:     pod.Namespace,
 				PodName:       pod.Name,
 				ContainerName: containerName,
+				StorageType:   ROOTFS_TYPE,
 			})
 		}
 	}
 
-	klog.Infof("[Restore Metrics] Node:%s container info metrics all restore", nodeName)
+	klog.Infof("[Restore Metrics] Node:%s container rootfs info metrics all restore", nodeName)
+
+	emptyPrefix := emptyDirPrjIDAnnotation + "."
+	for _, pod := range pods.Items {
+		for key, val := range pod.Annotations {
+			if !strings.HasPrefix(key, emptyPrefix) {
+				continue
+			}
+			volumeName := strings.TrimPrefix(key, emptyPrefix)
+			projectID, err := strconv.ParseUint(val, 10, 32)
+			if err != nil {
+				continue
+			}
+
+			containerName := ""
+			for _, container := range pod.Spec.Containers {
+				for _, volume := range container.VolumeMounts {
+					if volume.Name == volumeName {
+						containerName = container.Name
+						break
+					}
+				}
+
+			}
+
+			klog.V(4).Infof("[EmptyStorage Restore Metrics] Target detected: [%s/%s] Container: %s -> ProjectID: %d -> Volume: %s; Start Restore this\n",
+				pod.Namespace, pod.Name, containerName, projectID, volumeName)
+
+			s.TriggerUpdate(uint32(projectID), ContainerInfo{
+				ProjectID:     uint32(projectID),
+				Namespace:     pod.Namespace,
+				PodName:       pod.Name,
+				ContainerName: containerName,
+				VolumeName:    volumeName,
+				StorageType:   EMPTYDIR_TYPE,
+			})
+		}
+	}
+
+	klog.Infof("[EmptyStorage Restore Metrics] Node:%s container emptyStorage info metrics all restore", nodeName)
 }

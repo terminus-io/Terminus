@@ -45,8 +45,26 @@ var rootCmd = &cobra.Command{
 			containerdPath = "/var/lib/containerd"
 		}
 
-		for !checkContainerdRootPathQuotaEnabled(containerdPath) {
-			klog.Warningf("Waiting for %s to have prjquota enabled...\n", containerdPath)
+		kubeletRootPath := os.Getenv("KUBELET_PATH")
+		if kubeletRootPath == "" {
+			kubeletRootPath = "/var/lib/kubelet"
+		}
+
+		for {
+			containerd := checkContainerdRootPathQuotaEnabled(containerdPath)
+			kubelet := checkContainerdRootPathQuotaEnabled(kubeletRootPath)
+
+			if containerd && kubelet {
+				break
+			}
+
+			failedPath := containerdPath
+			if containerd {
+				failedPath = kubeletRootPath
+			}
+
+			klog.Warningf("Waiting for %s to have prjquota enabled...\n", failedPath)
+
 			time.Sleep(5 * time.Second)
 		}
 
@@ -62,12 +80,14 @@ var rootCmd = &cobra.Command{
 		}()
 
 		storageHook := hooks.NewStorageHook(store, kClient, containerdPath)
+		emptyStorageHook := hooks.NewEmptyDirHook(store, kClient, kubeletRootPath)
 
 		enforcer, err := nri.NewEnforcer(
 			nri.WithSocketPath(socketPath),
 			nri.WithPluginName(pluginName),
 			nri.WithPluginIdx(pluginIdx),
 			nri.WithHook(storageHook),
+			nri.WithHook(emptyStorageHook),
 		)
 		if err != nil {
 			return err
@@ -93,8 +113,8 @@ var rootCmd = &cobra.Command{
 		})
 
 		g.Go(func() error {
-			collector := exporter.NewStandardCollector(containerdPath, store)
-			return exporter.StartMetricsServer(ctx, collector, store, ":9201")
+			collector := exporter.NewStandardCollector(containerdPath, kubeletRootPath, store)
+			return exporter.StartMetricsServer(ctx, store, ":9201", collector)
 		})
 
 		g.Go(func() error {

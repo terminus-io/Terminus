@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: terminus-mutator-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: terminus/terminus-tls
+webhooks:
+  - name: mutator.terminus.io
+    failurePolicy: Ignore
+    timeoutSeconds: 5
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    clientConfig:
+      service:
+        name: terminus-quota-service
+        namespace: terminus
+        path: "/mutate"
+    rules:
+    - operations: ["CREATE"]
+      apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["pods"]
+      scope: Namespaced
