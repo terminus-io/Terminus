@@ -113,6 +113,8 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 		Namespace:     pod.Namespace,
 		PodName:       pod.Name,
 		ContainerName: container.Name,
+		VolumeName:    "rootfs",
+		StorageType:   metadata.ROOTFS_TYPE,
 	})
 
 	if err := h.handleUpdatePod(ctx, pod.Name, pod.Namespace, container.Name, fmt.Sprintf("%d", uint32(snapshotID))); err != nil {

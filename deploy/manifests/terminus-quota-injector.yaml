@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terminus-quota-injector
+  namespace: terminus
+  labels:
+    app: terminus-quota-injector
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: terminus-quota-injector
+  template:
+    metadata:
+      labels:
+        app: terminus-quota-injector
+    spec:
+      containers:
+      - name: mutator
+        image: ghcr.m.daocloud.io/terminus/quota-injector:v1.0.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --v=2
+        command:
+        - /usr/bin/terminus-quota-injector
+        ports:
+        - containerPort: 8443
+          name: https
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1
+            memory: 512Mi
+        readinessProbe:
+          exec:
+            command:
+            - ls
+            - /etc/webhook/certs/tls.crt
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+            - ls
+            - /etc/webhook/certs/tls.crt
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: terminus-tls
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: terminus-quota-service
+  namespace: terminus
+spec:
+  selector:
+    app: terminus-mutator
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 8443
+  type: ClusterIP

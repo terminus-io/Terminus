@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terminus-deploy-not-red
+  labels:
+    app: terminus-test
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: terminus-test
+  template:
+    metadata:
+      labels:
+        app: terminus-test
+      annotations:
+        storage.terminus.io/size.nginx: "10Gi"
+    spec:
+      volumes:
+      - emptyDir:
+          sizeLimit: 10Mi
+        name: volume-1772786888726
+      schedulerName: terminus-scheduler
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /tmp/
+              name: volume-1772786888726
+          resources:
+            limits:
+              cpu: 10m
+              ephemeral-storage: 10Gi

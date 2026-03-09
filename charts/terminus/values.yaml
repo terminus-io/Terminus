@@ -1,15 +1,15 @@
 images:
   enforcer:
-    repository: ghcr.io/terminus/enforcer
-    tag: v0.3.0
+    repository: ghcr.io/terminus-io/enforcer
+    tag: v1.0.0
     pullPolicy: IfNotPresent
   scheduler:
-    repository: ghcr.io/terminus/scheduler
-    tag: v0.3.0
+    repository: ghcr.io/terminus-io/scheduler
+    tag: v1.0.0
     pullPolicy: IfNotPresent
   quotaInjector:
-    repository: ghcr.io/terminus/quota-injector
-    tag: v0.3.0
+    repository: ghcr.io/terminus-io/quota-injector
+    tag: v1.0.0
     pullPolicy: IfNotPresent
 
 serviceAccount:
@@ -33,6 +33,7 @@ enforcer:
   logLevel: "4"
   priorityClassName: system-node-critical
   containerdBasePath: /var/lib/containerd
+  kubeletBasePath: /var/lib/kubelet
 
 replaceEphemeralStorage:
   enabled: false

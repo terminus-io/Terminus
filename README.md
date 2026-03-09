@@ -47,7 +47,7 @@ Terminus consists of three micro-components working in harmony:
 
 ```mermaid
 graph TD
-    User((User)) -->|Annotation: storage.terminus.io/size: '10Gi'| API[K8s API Server]
+    User((User)) -->|resource.limits.ephemeral-storage: '10Gi'| API[K8s API Server]
     
     subgraph Control Plane
         API -->|Watch| Scheduler[Kube-Scheduler]
@@ -104,15 +104,19 @@ Edit your `/etc/containerd/config.toml` to enable the NRI plugin:
 *Restart containerd after editing.*
 
 ### 2. Install Terminus via Helm
+
 ##### Helm Chart
+
+###### If set replaceEphemeralStorage.enabled to true, then must install cert-manager before
+
 ```bash
 helm repo add terminus https://terminus-io.github.io/Terminus
-helm install terminus terminus/terminus --set scheduler.useAI=true,scheduler.aiWeightRatio=50,scheduler.modelType=OPENAI,scheduler.modelName=gpt-3.5-turbo,scheduler.openAIAPIKey="sk-12345678123123123",scheduler.openAIAPIURL="https://api.openai.com/v1" --version 0.2.0 -n terminus --create-namespace
+helm install terminus terminus/terminus --set scheduler.enable=true,scheduler.useAI=false,replaceEphemeralStorage.enabled=true --version 1.0.0 -n terminus --create-namespace
 ```
 
 ##### Local
 ```bash
-helm install terminus ./charts/terminus  --set scheduler.useAI=true,scheduler.aiWeightRatio=50,scheduler.modelType=OPENAI,scheduler.modelName=gpt-3.5-turbo,scheduler.openAIAPIKey="sk-12345678123123123",scheduler.openAIAPIURL="https://api.openai.com/v1" -n terminus --create-namespace
+helm install terminus ./charts/terminus  --set scheduler.enable=true,scheduler.useAI=true,scheduler.aiWeightRatio=50,scheduler.modelType=OPENAI,scheduler.modelName=gpt-3.5-turbo,scheduler.openAIAPIKey="sk-12345678123123123",scheduler.openAIAPIURL="https://api.openai.com/v1",replaceEphemeralStorage.enabled=true -n terminus --create-namespace
 ```
 
 ### 3. Manual Installation
@@ -151,6 +155,10 @@ spec:
   containers:
   - name: nginx
     image: nginx
+    resources:
+      requests:
+        cpu: 10m
+        ephemeral-storage: 10Gi
 
 ```
 
@@ -204,10 +212,17 @@ data:
   - NRI plugin implementation for XFS Project Quota.
   - Prometheus Exporter & Grafana Dashboard integration.
   - Scheduler Plugin with "Real Usage" awareness.
+  
 * [x] **v0.2 (AI Scheduling Featrue)**: 
   - Enforcer Native Kernel Syscall via terminus-io/quota for zero-overhead enforcement.
   - Nexus AI Scheduling Brain (Dual-Plane Risk Control).
 
+* [x] **v1.0 (Official Version)**: 
+  - Supports native Kubernetes YAML configuration for ephemeral-storage limits (zero changes required, no additional annotations needed)
+  - Webhook automatically injects per-container quota
+  - Dual hard limits on rootfs + emptyDir (full coverage of temporary storage)
+  - Write operations exceeding quota trigger immediate ENOSPC — only the Pod dies, the node remains stable and never crashes
+  
 ## 🤝 Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](https://www.google.com/search?q=CONTRIBUTING.md) for details on how to submit a PR.

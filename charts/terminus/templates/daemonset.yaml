@@ -42,6 +42,8 @@ spec:
         env:
         - name: CONTAINERD_PATH
           value: {{ .Values.enforcer.containerdBasePath }}
+        - name: KUBELET_PATH
+          value: {{ .Values.enforcer.kubeletBasePath }}
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -49,6 +51,8 @@ spec:
         volumeMounts:
         - name: containerd-root
           mountPath: {{ .Values.enforcer.containerdBasePath }}
+        - name: kubelet-root
+          mountPath: {{ .Values.enforcer.kubeletBasePath }}
         - mountPath: /var/run/nri/nri.sock
           name: socket
           readOnly: true
@@ -56,6 +60,10 @@ spec:
       - name: containerd-root
         hostPath:
           path: {{ .Values.enforcer.containerdBasePath }}
+          type: Directory
+      - name: kubelet-root
+        hostPath:
+          path: {{ .Values.enforcer.kubeletBasePath }}
           type: Directory
       - hostPath:
           path: /var/run/nri/nri.sock
