@@ -42,19 +42,24 @@ func NewEmptyDirHook(store *metadata.AsyncStore, kClient kubernetes.Interface, k
 func (h *EmptyDirHook) Name() string { return "EmptyDirQuota" }
 
 func (h *EmptyDirHook) Process(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
+	return nil
+}
 
+func (h *EmptyDirHook) Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
 	podInfo, err := h.kClient.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
 		klog.Error(err, "[emptyStorage] Failed to get pod info", "pod", pod.Name, "namespace", pod.Namespace)
 	}
 
 	foundEmptyVolume := false
+	var volumeName string
 
 	for _, volume := range podInfo.Spec.Volumes {
 		if volume.EmptyDir != nil && volume.EmptyDir.SizeLimit != nil && volume.EmptyDir.Medium != v1.StorageMediumMemory {
 			klog.Infof("[emptyStorage] Detected emptyDir volume: %s with size limit: %d bytes",
 				volume.Name, volume.EmptyDir.SizeLimit.Value())
 			foundEmptyVolume = true
+			volumeName = volume.Name
 			break
 		}
 	}
@@ -66,8 +71,6 @@ func (h *EmptyDirHook) Process(ctx context.Context, pod *api.PodSandbox, contain
 
 	for _, m := range container.Mounts {
 		if strings.Contains(m.Source, "kubernetes.io~empty-dir") {
-			parts := strings.Split(m.Source, "/")
-			volumeName := parts[len(parts)-1]
 
 			klog.Infof("[emptyStorage] Detected container %s mounting emptyDir: %s at physical path: %s",
 				container.Name, volumeName, m.Source)
@@ -135,10 +138,6 @@ func (h *EmptyDirHook) Process(ctx context.Context, pod *api.PodSandbox, contain
 	return nil
 }
 
-func (h *EmptyDirHook) Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
-	return nil
-}
-
 func (h *EmptyDirHook) Stop(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
 
 	podInfo, err := h.kClient.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
@@ -153,12 +152,13 @@ func (h *EmptyDirHook) Stop(ctx context.Context, pod *api.PodSandbox, container 
 	}
 
 	foundEmptyVolume := false
-
+	var volumeName string
 	for _, volume := range podInfo.Spec.Volumes {
 		if volume.EmptyDir != nil && volume.EmptyDir.SizeLimit != nil {
 			klog.Infof("[emptyStorage] Detected emptyDir volume: %s with size limit: %d bytes",
 				volume.Name, volume.EmptyDir.SizeLimit.Value())
 			foundEmptyVolume = true
+			volumeName = volume.Name
 			break
 		}
 	}
@@ -170,8 +170,6 @@ func (h *EmptyDirHook) Stop(ctx context.Context, pod *api.PodSandbox, container 
 
 	for _, m := range container.Mounts {
 		if strings.Contains(m.Source, "kubernetes.io~empty-dir") {
-			parts := strings.Split(m.Source, "/")
-			volumeName := parts[len(parts)-1]
 
 			klog.Infof("[emptyStorage] Detected container %s mounting emptyDir: %s at physical path: %s",
 				container.Name, volumeName, m.Source)
