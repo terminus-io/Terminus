@@ -1,15 +1,15 @@
 images:
   enforcer:
     repository: ghcr.io/terminus-io/enforcer
-    tag: v1.0.0
+    tag: v1.1.0
     pullPolicy: IfNotPresent
   scheduler:
     repository: ghcr.io/terminus-io/scheduler
-    tag: v1.0.0
+    tag: v1.1.0
     pullPolicy: IfNotPresent
   quotaInjector:
     repository: ghcr.io/terminus-io/quota-injector
-    tag: v1.0.0
+    tag: v1.1.0
     pullPolicy: IfNotPresent
 
 serviceAccount:

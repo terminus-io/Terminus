@@ -15,6 +15,7 @@ import (
 	"github.com/containerd/nri/pkg/api"
 	"github.com/terminus-io/Terminus/pkg/metadata"
 	"github.com/terminus-io/Terminus/pkg/nri"
+	"github.com/terminus-io/Terminus/pkg/utils"
 	terminus_quota "github.com/terminus-io/quota"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,14 +36,18 @@ const (
 // StorageHook 负责处理磁盘限额
 type StorageHook struct {
 	containerdRootPath string
+	containerdClient   *utils.ContainerdClientWrapper
+	containerdCtx      context.Context
 	store              *metadata.AsyncStore
 	kClient            kubernetes.Interface
 }
 
 // qm quota.QuotaManager,
-func NewStorageHook(store *metadata.AsyncStore, kClient kubernetes.Interface, containerdRootPath string) nri.Hook {
+func NewStorageHook(store *metadata.AsyncStore, kClient kubernetes.Interface, containerdRootPath string, wrapper *utils.ContainerdClientWrapper, containerdCtx context.Context) nri.Hook {
 	return &StorageHook{
 		containerdRootPath: containerdRootPath,
+		containerdClient:   wrapper,
+		containerdCtx:      containerdCtx,
 		store:              store,
 		kClient:            kClient,
 	}
@@ -78,10 +83,108 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 		"bytes", limitBytes,
 	)
 
+	if pod.GetRuntimeHandler() == "io.containerd.kata.v2" || pod.GetRuntimeHandler() == "kata" {
+
+		klog.Infof("[kata-container] Start container %s (ID: %s)", container.Name, container.Id)
+
+		cont, err := h.containerdClient.LoadContainer(h.containerdCtx, container.Id)
+		if err != nil {
+			klog.ErrorS(err, "[kata-container] failed to load container", "containerID", container.Id)
+			return nil
+		}
+
+		info, err := cont.Info(h.containerdCtx)
+		if err != nil {
+			klog.ErrorS(err, "[kata-container] failed to get container info", "containerID", container.Id)
+			return nil
+		}
+
+		snapshotKey := info.SnapshotKey
+		if snapshotKey == "" {
+			klog.ErrorS(err, "[kata-container] container has no snapshot key", "containerID", container.Id)
+			return nil
+		}
+
+		snapshotterName := info.Snapshotter
+		if snapshotterName == "" {
+			klog.ErrorS(err, "[kata-container] container has no snapshotter", "containerID", container.Id)
+			return nil
+		}
+
+		snapshotter := h.containerdClient.SnapshotService(snapshotterName)
+		if snapshotter == nil {
+			klog.ErrorS(err, "[kata-container] snapshotter not found", "snapshotterName", snapshotterName)
+			return nil
+		}
+
+		mounts, err := snapshotter.Mounts(h.containerdCtx, snapshotKey)
+		if err != nil {
+			klog.ErrorS(err, "[kata-container] failed to get mounts for snapshot", "snapshotKey", snapshotKey)
+			return nil
+		}
+
+		if len(mounts) == 0 {
+			klog.ErrorS(err, "[kata-container] no mounts returned for snapshot", "snapshotKey", snapshotKey)
+			return nil
+		}
+
+		for _, m := range mounts {
+
+			upperdir := findOptionValue(m.Options, "upperdir")
+
+			if upperdir != "" {
+				klog.V(4).Infof("[kata-container] Writable upperdir: %s\n", upperdir)
+			}
+			workdir := findOptionValue(m.Options, "workdir")
+
+			if workdir != "" {
+				klog.V(4).Infof("[kata-container] Workdir   : %s\n", workdir)
+			}
+
+			snapshotIDStr := filepath.Base(filepath.Dir(workdir))
+			snapshotID, err := strconv.ParseUint(snapshotIDStr, 10, 32)
+			if err != nil {
+				klog.Errorf("[kata-container] failed to parse snapshot ID %q: %v", snapshotIDStr, err)
+			}
+
+			klog.V(2).Infof("[kata-container] Applying quota %d MB to container %s (ID: %s) at %s", limitBytes/MB, container.Name, container.Id, upperdir)
+
+			klog.V(2).Infof("[kata-container] Target Quota Path: %s, Quota ProjectID: %d", upperdir, int(snapshotID))
+
+			if err := terminus_quota.SetProjectID(upperdir, int(snapshotID)); err != nil {
+				klog.Errorf("[kata-container] Failed to set fs project id for %s: %v", upperdir, err)
+			}
+
+			klog.V(2).Infof("[kata-container] Target Quota Path: %s, Quota ProjectID: %d", workdir, int(snapshotID))
+
+			if err := terminus_quota.SetProjectIDRecursive(workdir, int(snapshotID)); err != nil {
+				klog.Errorf("[kata-container] Failed to set work project id for %s: %v", workdir, err)
+			}
+
+			if err := terminus_quota.SetQuota(h.containerdRootPath, uint32(snapshotID),
+				terminus_quota.ProjQuota, limitBytes/KB, 0, 0, 0); err != nil {
+				klog.Errorf("[kata-container] Failed to apply quota: %v", err)
+			}
+
+			h.store.TriggerUpdate(uint32(snapshotID), metadata.ContainerInfo{
+				ProjectID:     uint32(snapshotID),
+				Namespace:     pod.Namespace,
+				PodName:       pod.Name,
+				ContainerName: container.Name,
+				VolumeName:    "rootfs",
+				StorageType:   metadata.ROOTFS_TYPE,
+			})
+
+			if err := h.handleUpdatePod(ctx, pod.Name, pod.Namespace, container.Name, fmt.Sprintf("%d", uint32(snapshotID))); err != nil {
+				klog.Warningf("[kata-container] %s/%s pod label update failed, It may affect the reporting of pod disk monitoring metrics, err: %v",
+					pod.Namespace, pod.Name, err)
+			}
+		}
+
+		return nil
+	}
+
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
-
-	klog.V(2).Infof("Applying quota %d MB to container %s (ID: %s) at %s", limitBytes/MB, container.Name, container.Id, rootfsPath)
-
 	runPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
 	//Obtain the snapshot ID of overlays as the ProjectID of xfs_quota
 	snapshotID, foundPath, err := getOverlayPath(runPath)
@@ -92,15 +195,18 @@ func (h *StorageHook) Start(ctx context.Context, pod *api.PodSandbox, container 
 		return nil
 	}
 
-	klog.V(2).Infof("Target XFS Quota Path: %s, Quota ProjectID: %v", rootfsPath, snapshotID)
+	klog.V(2).Infof("Applying quota %d MB to container %s (ID: %s) at %s", limitBytes/MB, container.Name, container.Id, rootfsPath)
+
+	klog.V(2).Infof("Target Quota Path: %s, Quota ProjectID: %v", rootfsPath, snapshotID)
 
 	if err := terminus_quota.SetProjectIDRecursive(rootfsPath, int(snapshotID)); err != nil {
-		klog.Errorf("Failed to set fs project id: %v ", err)
+		klog.Errorf("Failed to set fs project id for %s: %v", rootfsPath, err)
 	}
 
 	workPath := strings.TrimSuffix(rootfsPath, "/fs") + "/work"
+	klog.V(2).Infof("Target Quota Path: %s, Quota ProjectID: %v", workPath, snapshotID)
 	if err := terminus_quota.SetProjectIDRecursive(workPath, int(snapshotID)); err != nil {
-		klog.Errorf("Failed to set work project id: %v ", err)
+		klog.Errorf("Failed to set work project id for %s: %v", workPath, err)
 	}
 
 	if err := terminus_quota.SetQuota(h.containerdRootPath, uint32(snapshotID),
@@ -133,6 +239,92 @@ func (h *StorageHook) Stop(ctx context.Context, pod *api.PodSandbox, container *
 		if !ok {
 			return nil
 		}
+	}
+
+	if pod.GetRuntimeHandler() == "io.containerd.kata.v2" || pod.GetRuntimeHandler() == "kata" {
+		klog.Infof("[kata-container] Stop container %s (ID: %s)", container.Name, container.Id)
+
+		cont, err := h.containerdClient.LoadContainer(h.containerdCtx, container.Id)
+		if err != nil {
+			klog.ErrorS(err, "[kata-container] failed to load container", "containerID", container.Id)
+			return nil
+		}
+
+		info, err := cont.Info(h.containerdCtx)
+		if err != nil {
+			klog.ErrorS(err, "[kata-container] failed to get container info", "containerID", container.Id)
+			return nil
+		}
+
+		snapshotKey := info.SnapshotKey
+		if snapshotKey == "" {
+			klog.ErrorS(err, "[kata-container] container has no snapshot key", "containerID", container.Id)
+			return nil
+		}
+
+		snapshotterName := info.Snapshotter
+		if snapshotterName == "" {
+			klog.ErrorS(err, "[kata-container] container has no snapshotter", "containerID", container.Id)
+			return nil
+		}
+
+		snapshotter := h.containerdClient.SnapshotService(snapshotterName)
+		if snapshotter == nil {
+			klog.ErrorS(err, "[kata-container] snapshotter not found", "snapshotterName", snapshotterName)
+			return nil
+		}
+
+		mounts, err := snapshotter.Mounts(h.containerdCtx, snapshotKey)
+		if err != nil {
+			klog.ErrorS(err, "[kata-container] failed to get mounts for snapshot", "snapshotKey", snapshotKey)
+			return nil
+		}
+
+		if len(mounts) == 0 {
+			klog.ErrorS(err, "[kata-container] no mounts returned for snapshot", "snapshotKey", snapshotKey)
+			return nil
+		}
+
+		for _, m := range mounts {
+
+			upperdir := findOptionValue(m.Options, "upperdir")
+
+			if upperdir != "" {
+				klog.V(4).Infof("[kata-container] Writable upperdir: %s\n", upperdir)
+			}
+			workdir := findOptionValue(m.Options, "workdir")
+
+			if workdir != "" {
+				klog.V(4).Infof("[kata-container] Workdir   : %s\n", workdir)
+			}
+
+			snapshotIDStr := filepath.Base(filepath.Dir(workdir))
+			snapshotID, err := strconv.ParseUint(snapshotIDStr, 10, 32)
+			if err != nil {
+				klog.Errorf("[kata-container] failed to parse snapshot ID %q: %v", snapshotIDStr, err)
+			}
+
+			klog.V(2).Infof("[kata-container] Deleting quota to container %s (ID: %s) at %s", container.Name, container.Id, upperdir)
+
+			if err := terminus_quota.SetProjectID(upperdir, int(snapshotID)); err != nil {
+				klog.Errorf("[kata-container] Failed to set fs project id for %s: %v", upperdir, err)
+			}
+
+			klog.V(2).Infof("[kata-container] Target Quota Path: %s, Quota ProjectID: %d", workdir, int(snapshotID))
+
+			if err := terminus_quota.RemoveQuota(h.containerdRootPath, uint32(snapshotID), terminus_quota.ProjQuota); err != nil {
+				klog.Warningf("[kata-container] remove Project ID quota for %s, failed", upperdir)
+				return err
+			}
+
+			if err := terminus_quota.ClearProjectID(h.containerdRootPath); err != nil {
+				klog.Warningf("[kata-container] clear Project ID for %s, failed", upperdir)
+			}
+
+			h.store.TriggerDelete(uint32(snapshotID))
+		}
+
+		return nil
 	}
 
 	rootfsPath := filepath.Join(ContainerdBasePath, container.Id, "rootfs")
@@ -233,4 +425,14 @@ func getOverlayPath(containerRootfs string) (uint64, string, error) {
 	}
 
 	return 0, "", fmt.Errorf("overlay path not found in mountinfo for %s", containerRootfs)
+}
+
+func findOptionValue(opts []string, key string) string {
+	prefix := key + "="
+	for _, opt := range opts {
+		if strings.HasPrefix(opt, prefix) {
+			return strings.TrimPrefix(opt, prefix)
+		}
+	}
+	return ""
 }

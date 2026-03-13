@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/spf13/cobra"
 	"github.com/terminus-io/Terminus/pkg/exporter"
 	"github.com/terminus-io/Terminus/pkg/hooks"
@@ -17,6 +19,7 @@ import (
 	"github.com/terminus-io/Terminus/pkg/metadata"
 	"github.com/terminus-io/Terminus/pkg/nri"
 	"github.com/terminus-io/Terminus/pkg/reporter"
+	"github.com/terminus-io/Terminus/pkg/utils"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/klog/v2"
 )
@@ -68,6 +71,13 @@ var rootCmd = &cobra.Command{
 			time.Sleep(5 * time.Second)
 		}
 
+		socket := "/run/containerd/containerd.sock"
+		if _, err := os.Stat(socket); err != nil {
+			log.Fatalf("containerd socket not found: %v", err)
+		}
+
+		containerdCtx := namespaces.WithNamespace(context.Background(), "k8s.io")
+
 		kClient, err := k8s.GenrateK8sClient()
 		if err != nil {
 			return err
@@ -79,7 +89,8 @@ var rootCmd = &cobra.Command{
 			store.TriggerRestore()
 		}()
 
-		storageHook := hooks.NewStorageHook(store, kClient, containerdPath)
+		containerdWrapper := utils.NewContainerdClientWrapper(socket, "k8s.io")
+		storageHook := hooks.NewStorageHook(store, kClient, containerdPath, containerdWrapper, containerdCtx)
 		emptyStorageHook := hooks.NewEmptyDirHook(store, kClient, kubeletRootPath)
 
 		enforcer, err := nri.NewEnforcer(

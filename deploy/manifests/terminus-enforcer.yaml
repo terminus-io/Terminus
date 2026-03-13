@@ -54,8 +54,11 @@ spec:
           mountPath: /var/lib/containerd
         - name: kubelet-root
           mountPath: /var/lib/kubelet
-        - mountPath: /var/run/nri/nri.sock
-          name: socket
+        - name: nri-sock
+          mountPath: /var/run/nri
+          readOnly: true
+        - name: containerd-sock
+          mountPath: /run/containerd
           readOnly: true
       volumes:
       - name: containerd-root
@@ -66,7 +69,11 @@ spec:
         hostPath:
           path: /var/lib/kubelet
           type: Directory
-      - hostPath:
-          path: /var/run/nri/nri.sock
-          type: Socket
-        name: socket
+      - name: nri-sock
+        hostPath:
+          path: /var/run/nri
+          type: Directory
+      - name: containerd-sock
+        hostPath:
+          path: /run/containerd
+          type: Directory
